@@ -107,6 +107,7 @@ public class Grid<TGridObject>
     }
     public TGridObject GetGridObject (Vector3 position)
     {
+        //Debug.Log( position );
         Vector3Int gridObject = GetGridPosition( position );
         return GetGridObject( gridObject.x, gridObject.y );
     }

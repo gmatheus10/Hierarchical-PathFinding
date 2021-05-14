@@ -13,13 +13,16 @@ public class CreateGrid : MonoBehaviour
     {
         InstatiateNewGrid();
     }
+
+    public delegate void SendGrid (Grid<Cell> grid);
+    public event SendGrid OnGridCreation;
     private void InstatiateNewGrid ( )
     {
         int gridSizeX = Mathf.RoundToInt( gridSize.x );
         int gridSizeY = Mathf.RoundToInt( gridSize.y );
         Vector3 originPosition = gameObject.transform.position;
         grid = new Grid<Cell>( gridSizeX, gridSizeY, cellSize, originPosition, InstatiateCell, true );
-        grid.showGrid = false;
+        OnGridCreation?.Invoke( grid );
     }
 
     private Cell InstatiateCell (Grid<Cell> g, int x, int y)

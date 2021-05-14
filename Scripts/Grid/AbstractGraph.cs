@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class HPA : MonoBehaviour
+public class AbstractGraph : MonoBehaviour
 {
     private Grid<Cell> grid;
     public int Level;
@@ -10,14 +10,16 @@ public class HPA : MonoBehaviour
     private CreateGrid createGrid;
     private Cluster[,] clustersLevel1;
     private Cluster[,] multiLevelCluster;
+    public List<Cluster[,]> allClustersAllLevels = new List<Cluster[,]>();
     List<Entrance> setOfEntrances = new List<Entrance>();
     private void Awake ( )
     {
         createGrid = gameObject.GetComponent<CreateGrid>();
-        grid = createGrid.grid;
     }
     private void Start ( )
     {
+
+        grid = createGrid.grid;
         PreProcessing( Level );
     }
     void PreProcessing (int maxLevel)
@@ -114,8 +116,8 @@ public class HPA : MonoBehaviour
         Cluster cluster = new Cluster( size, clusterPosition, level );
 
         cluster.SetGridPosition( grid.GetGridPosition( clusterPosition ) );
-        Color color = new Color( 0.3f * level, -1f + 0.6f * level, 0.05f * level, 1 );
-        DrawClusters( cluster.originPosition, cluster.size, color );
+        Color color = new Color( 0.3f * level, -1f + 0.7f * level, 0.05f * level, 1 );
+        HPA_Utils.DrawClusters( cluster.originPosition, cluster.size, color );
 
         if (level > 1)
         {
@@ -296,6 +298,7 @@ public class HPA : MonoBehaviour
 
             }
         }
+        allClustersAllLevels.Add( clustersLevel1 );
     }
 
     private void InstantiateNode (Entrance entrance, Cell middleCell)
@@ -306,27 +309,32 @@ public class HPA : MonoBehaviour
 
             if (!symmMiddle.isWall)
             {
-                Node c1Node = NewNode( entrance, middleCell );
-                AddNode( entrance, c1Node, 1 );
-                Node c2Node = NewNode( entrance, symmMiddle );
-                AddNode( entrance, c2Node, 1 );
+                Cluster c1 = entrance.cluster1;
+                Cluster c2 = entrance.cluster2;
+                Node c1Node = NewNode( c1, middleCell );
+                Node c2Node = NewNode( c2, symmMiddle );
                 c1Node.pair = c2Node;
                 c2Node.pair = c1Node;
-                InstantiateINTEREdge( entrance, c1Node, c2Node );
-                entrance.cluster1.AddNodeToCluster( c1Node );
-                entrance.cluster2.AddNodeToCluster( c2Node );
-                Debug.DrawLine( c1Node.worldPosition, c2Node.worldPosition, Color.red, 10000f );
+                AddNode( entrance, c1Node, 1 );
+                AddNode( entrance, c2Node, 1 );
+
+
+                AddEdge( entrance, c1Node, c2Node );
+                c1.AddNodeToCluster( c1Node );
+                c2.AddNodeToCluster( c2Node );
+
             }
         }
-        Node NewNode (Entrance entrance, Cell CellNode)
+        Node NewNode (Cluster cluster, Cell CellNode)
         {
-            Node c1Node = new Node( entrance.cluster1, entrance );
-            c1Node.SetPositions( CellNode.worldPosition, CellNode.gridPosition );
-            c1Node.SetCell( CellNode );
-            return c1Node;
+            Node node = new Node( cluster );
+            node.SetEntrance( entrance );
+            node.SetPositions( CellNode.worldPosition );
+            node.SetCell( CellNode );
+            return node;
         }
 
-        void InstantiateINTEREdge (Entrance entrance, Node c1Node, Node c2Node)
+        void AddEdge (Entrance entrance, Node c1Node, Node c2Node)
         {
             Edge edge = new Edge( c1Node, c2Node, 1, Edge.EdgeType.INTER, 1 );
             entrance.SetEdges( edge );
@@ -336,7 +344,7 @@ public class HPA : MonoBehaviour
     {
         //DrawCrossInCell( node.cell, Color.yellow );
         node.level = Level;
-        entrance.SetNodes( node );
+        entrance.AddNode( node );
     }
     private void CalculateEdge (Cluster cluster, List<Node> nodes, PathFinding pathFinding, int level)
     {
@@ -362,7 +370,10 @@ public class HPA : MonoBehaviour
                             if (level == 1)
                             {
                                 path = pathFinding.FindPath( node1.worldPosition, node2.worldPosition );
-                                edge = new Edge( node1, node2, level, Edge.EdgeType.INTRA, path.Count );
+                                if (path != null)
+                                {
+                                    edge = new Edge( node1, node2, level, Edge.EdgeType.INTRA, path.Count );
+                                }
                             }
                             if (level > 1)
                             {
@@ -380,9 +391,12 @@ public class HPA : MonoBehaviour
                                             if (nextSubCluster.IsNodeInside( node2 ))
                                             {
                                                 path = pathFinding.FindPath( node1.worldPosition, node2.worldPosition );
-                                                edge = new Edge( node1, node2, level, Edge.EdgeType.INTRA );
+                                                if (path != null)
+                                                {
+                                                    edge = new Edge( node1, node2, level, Edge.EdgeType.INTRA );
+                                                    subCluster.AddEdge( edge );
+                                                }
 
-                                                subCluster.AddEdge( edge );
                                             }
                                         }
 
@@ -392,9 +406,13 @@ public class HPA : MonoBehaviour
                                 if (level == Level)
                                 {
 
-                                    ShowPathLines( path );
+                                    //ShowPathLines( path );
+                                    if (edge != null)
+                                    {
+                                        //HPA_Utils.DrawEdge( edge, Color.red, 10000f );
+
+                                    }
                                 }
-                                //Debug.DrawLine( node1.worldPosition, node2.worldPosition, Color.red, 10000f );
                             }
                         }
                         catch (System.Exception)
@@ -417,7 +435,7 @@ public class HPA : MonoBehaviour
             {
                 Cluster currentCluster = multiLevelCluster[i, j];
                 Cluster nextCluster;
-
+                #region levelUpNodes
                 try
                 {
                     nextCluster = multiLevelCluster[i + 1, j];
@@ -427,10 +445,7 @@ public class HPA : MonoBehaviour
                     if (i == j && i == 0)
                     {
                         Cluster subCluster = currentCluster.lesserLevelClusters[0];
-                        Node node = subCluster.clusterNodes[0];
-                        LevelUpNode( level, node );
-                        currentCluster.AddNodeToCluster( node );
-
+                        LevelUpCornerSubClusters( level, currentCluster, subCluster );
                     }
                 }
                 catch
@@ -447,9 +462,7 @@ public class HPA : MonoBehaviour
                             if (j == 0)
                             {
                                 Cluster subCluster = currentCluster.lesserLevelClusters[2];
-                                Node node = subCluster.clusterNodes[0];
-                                LevelUpNode( level, node );
-                                currentCluster.AddNodeToCluster( node );
+                                LevelUpCornerSubClusters( level, currentCluster, subCluster );
 
                             }
                             nextCluster = multiLevelCluster[i, j + 1];
@@ -458,9 +471,7 @@ public class HPA : MonoBehaviour
                         catch
                         {
                             Cluster subCluster = currentCluster.lesserLevelClusters[3];
-                            Node node = subCluster.clusterNodes[0];
-                            LevelUpNode( level, node );
-                            currentCluster.AddNodeToCluster( node );
+                            LevelUpCornerSubClusters( level, currentCluster, subCluster );
 
                         }
                     }
@@ -473,21 +484,21 @@ public class HPA : MonoBehaviour
                         if (i == 0)
                         {
                             Cluster subCluster = currentCluster.lesserLevelClusters[1];
-                            Node node = subCluster.clusterNodes[0];
-                            LevelUpNode( level, node );
-                            currentCluster.AddNodeToCluster( node );
+                            LevelUpCornerSubClusters( level, currentCluster, subCluster );
 
                         }
                     }
                 }
+                #endregion
                 Grid<Cell> clusterGrid = grid.GetFractionOfGrid( currentCluster.originPosition, currentCluster.size, false );
                 currentCluster.AddGrid( clusterGrid );
                 PathFinding pathFinding = new PathFinding( clusterGrid );
                 CalculateEdge( currentCluster, currentCluster.clusterNodes, pathFinding, level );
 
             }
-        }
 
+        }
+        allClustersAllLevels.Add( multiLevelCluster );
         void HandleMultiLevelClusters (int level, Cluster currentCluster, Cluster nextCluster)
         {
             if (IsAdjacent( currentCluster, nextCluster ))
@@ -497,16 +508,20 @@ public class HPA : MonoBehaviour
         }
     }
 
+    private static void LevelUpCornerSubClusters (int level, Cluster currentCluster, Cluster subCluster)
+    {
+        foreach (Node node in subCluster.clusterNodes)
+        {
+            LevelUpNode( level, node );
+            currentCluster.AddNodeToCluster( node );
+        }
+    }
+
     private void UpdateEntrances (Cluster cluster, Cluster nextCluster, int level)
     {
         foreach (Entrance entrance in setOfEntrances)
         {
-            entrance.LevelUpEntrance( cluster, nextCluster );
-            //if (cluster.IsEntranceInside( entrance.entranceTiles ) && nextCluster.IsEntranceInside( entrance.symmEntranceTiles ))
-            //{
-            //cluster.AddEntrance( entrance );
-            //   UpdateEdges( level, entrance );
-
+            entrance.LevelUpEntrance( cluster, nextCluster, level );
         }
         UpdateNodes( cluster, nextCluster, level );
 
@@ -518,58 +533,43 @@ public class HPA : MonoBehaviour
         //  Entrance entrance = cluster.entrances[0];
         foreach (Entrance entrance in cluster.entrances)
         {
-            foreach (Cell c in entrance.entranceTiles)
-            {
-                DrawCrossInCell( c, Color.blue );
-            }
-            //foreach (Node node1 in entrance.entranceNodes)
-            //{
-            //    DrawCrossInCell( node1.cell, Color.yellow );
-            //}
             Node node = entrance.entranceNodes[0];
-            DrawCrossInCell( node.cell, Color.yellow );
-            //foreach (Node node in entrance.entranceNodes)
-            //{
-            //foreach subcluster, i'm going to keep only 1 node
+
             if (!cluster.clusterNodes.Contains( node ))
             {
                 LevelUpNode( level, node );
                 cluster.AddNodeToCluster( node );
-                // DrawCrossInCell( node.cell, Color.yellow );
-
             }
             if (!nextCluster.clusterNodes.Contains( node.pair ))
             {
                 LevelUpNode( level, node );
                 nextCluster.AddNodeToCluster( node.pair );
-                //  DrawCrossInCell( node.pair.cell, Color.yellow );
             }
+
         }
 
     }
 
-    private void LevelUpNode (int level, Node node)
+    public static void LevelUpNode (int level, Node node)
     {
-        if (node.level != level)
+        if (node != null)
         {
-            node.level = level;
-            if (node.pair.level != level)
+            if (node.level != level)
             {
-                node.pair.level = level;
+                node.level = level;
+                if (node.pair != null && node.pair.level != level)
+                {
+                    node.pair.level = level;
+                }
+            }
+            if (node.pair != null)
+            {
+                //Debug.DrawLine( node.worldPosition, node.pair.worldPosition, Color.red, 10000f );
             }
         }
     }
 
-    private void UpdateEdges (int level, Entrance entrance)
-    {
-        foreach (Edge edge in entrance.entranceEdges)
-        {
-            if (edge.Level != level)
-            {
-                edge.Level = level;
-            }
-        }
-    }
+
 
 
 
@@ -583,45 +583,6 @@ public class HPA : MonoBehaviour
     {
         return grid.GetGridPosition( cluster.originPosition + new Vector3( cluster.size.x, cluster.size.y, 0 ) );
     }
-    private void DrawCrossInCell (Cell c, Color color)
-    {
-        float crossLength = 0.2f;
-        Vector3 crossX = new Vector3( crossLength, 0, 0 );
-        Vector3 crossY = new Vector3( 0, crossLength, 0 );
-        Debug.DrawLine( c.worldPosition - crossX, c.worldPosition + crossX, color, 100000f );
-        Debug.DrawLine( c.worldPosition - crossY, c.worldPosition + crossY, color, 100000f );
-    }
-    private void DrawClusters (Vector3 position, float Width, float Height, Color color)
-    {
-        ///drawing Cluster border///
-        Debug.DrawLine( position, new Vector3( position.x, position.y + Height ), color, 10000f, false );
-        Debug.DrawLine( position, new Vector3( position.x + Width, position.y ), color, 10000f, false );
-        ///drawing Cluster border///
-    }
-    private void DrawClusters (Vector3 position, Vector2Int size, Color color)
-    {
-        DrawClusters( position, size.x, size.y, color );
-    }
-    private void ShowPathLines (List<Cell> path)
-    {
-        if (path != null)
-        {
-            for (int i = 0; i < path.Count - 1; i++)
-            {
-                Vector3Int currentCellPosition = path[i].gridPosition;
-                int pathX = currentCellPosition.x;
-                int pathY = currentCellPosition.y;
-                Vector3 position = grid.GetWorldPosition( pathX, pathY );
 
-                Vector3Int nextCellPosition = path[i + 1].gridPosition;
-                int nextPathX = nextCellPosition.x;
-                int nextPathY = nextCellPosition.y;
-                Vector3 positionNext = grid.GetWorldPosition( nextPathX, nextPathY );
-
-                Vector3 centerCell = Vector3.one * 0.5f * grid.cellSize;
-                Debug.DrawLine( position + centerCell, positionNext + centerCell, Color.red, 100f );
-            }
-        }
-    }
 }
 

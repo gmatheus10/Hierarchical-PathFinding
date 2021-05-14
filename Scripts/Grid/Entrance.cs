@@ -51,7 +51,7 @@ public class Entrance
     {
         return symmEntranceTiles;
     }
-    public void SetNodes (Node node)
+    public void AddNode (Node node)
     {
         this.entranceNodes.Add( node );
     }
@@ -82,7 +82,7 @@ public class Entrance
     {
         entranceEdges.Add( edge );
     }
-    public void LevelUpEntrance (Cluster cluster1, Cluster cluster2)
+    public void LevelUpEntrance (Cluster cluster1, Cluster cluster2, int level)
     {
 
         bool entranceTilesInside = cluster1.IsEntranceInside( this.entranceTiles );
@@ -93,7 +93,23 @@ public class Entrance
             this.cluster1 = cluster1;
             cluster1.AddEntrance( this );
             this.cluster2 = cluster2;
+            cluster2.AddEntrance( this );
+            UpdateEdges( level );
         }
 
+    }
+    public bool IsNodeInside (Node node)
+    {
+        return entranceNodes.Contains( node );
+    }
+    private void UpdateEdges (int level)
+    {
+        foreach (Edge edge in entranceEdges)
+        {
+            if (edge.Level != level)
+            {
+                edge.Level = level;
+            }
+        }
     }
 }

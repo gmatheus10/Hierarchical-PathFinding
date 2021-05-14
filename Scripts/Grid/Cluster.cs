@@ -44,7 +44,15 @@ public class Cluster
     }
     public void AddNodeToCluster (Node node)
     {
-        clusterNodes.Add( node );
+        if (this.IsPositionInside( node.worldPosition ))
+        {
+            if (!clusterNodes.Contains( node ))
+            {
+
+                clusterNodes.Add( node );
+            }
+        }
+
     }
     public void RemoveNodeFromCluster (Node node)
     {
@@ -116,11 +124,17 @@ public class Cluster
     }
     public bool IsNodeInside (Node node)
     {
-        return clusterGrid.IsInsideGrid( node.cell.worldPosition );
+        return clusterGrid.IsInsideGrid( node.worldPosition );
     }
     public void AddEdge (Edge intraEdge)
     {
         INTRAEdges.Add( intraEdge );
     }
 
+    public Node GetNode (Vector3 position)
+    {
+        Node searched = this.clusterNodes.Find( node => node.worldPosition == position );
+        return searched;
+
+    }
 }

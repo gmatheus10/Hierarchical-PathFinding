@@ -251,9 +251,9 @@ public class PathFinding
         //Debug.DrawLine( grid.GetWorldPosition( x, y ), grid.GetWorldPosition( x + 1, y + 1 ), Color.blue, 10f );
         cell.isWall = false;
     }
-    public void SetCellWalkable (Vector3 cellPosition)
+    public void SetCellWalkable (Vector3 position)
     {
-        Vector3Int gridPosition = grid.GetGridPosition( cellPosition );
+        Vector3Int gridPosition = grid.GetGridPosition( position );
 
         SetCellWalkable( gridPosition.x, gridPosition.y );
     }
@@ -267,5 +267,26 @@ public class PathFinding
     {
         Vector3Int gridPosition = grid.GetGridPosition( cellPosition );
         SetCellUnwalkable( gridPosition.x, gridPosition.y );
+    }
+    public static void ShowPathLines (Grid<Cell> grid, List<Cell> path, Color color, float duration)
+    {
+        if (path != null)
+        {
+            for (int i = 0; i < path.Count - 1; i++)
+            {
+                Vector3Int currentCellPosition = path[i].gridPosition;
+                int pathX = currentCellPosition.x;
+                int pathY = currentCellPosition.y;
+                Vector3 position = grid.GetWorldPosition( pathX, pathY );
+
+                Vector3Int nextCellPosition = path[i + 1].gridPosition;
+                int nextPathX = nextCellPosition.x;
+                int nextPathY = nextCellPosition.y;
+                Vector3 positionNext = grid.GetWorldPosition( nextPathX, nextPathY );
+
+                Vector3 centerCell = Vector3.one * 0.5f * grid.cellSize;
+                Debug.DrawLine( position + centerCell, positionNext + centerCell, color, duration );
+            }
+        }
     }
 }
