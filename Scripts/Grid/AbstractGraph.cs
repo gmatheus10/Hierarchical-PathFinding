@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class AbstractGraph : MonoBehaviour
 {
-    private Grid<Cell> grid;
+    public Grid<Cell> grid;
     public int Level;
     public Vector2Int LevelOneClusterSize;
     private CreateGrid createGrid;

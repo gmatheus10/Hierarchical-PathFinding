@@ -51,11 +51,22 @@ public static class HPA_Utils
     {
         if (path != null)
         {
-            for (int i = 1; i < path.Count - 1; i++)
+            for (int i = 1; i <= path.Count - 1; i++)
             {
                 Debug.DrawLine( path[i], path[i - 1], Color.red, 15f );
             }
         }
-
+    }
+    public static void ShowPathLines (List<Cluster> path)
+    {
+        List<Vector3> pathPositions = new List<Vector3>();
+        if (path != null)
+        {
+            foreach (var c in path)
+            {
+                pathPositions.Add( c.originPosition );
+            }
+        }
+        ShowPathLines( pathPositions );
     }
 }

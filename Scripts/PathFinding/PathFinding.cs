@@ -5,7 +5,7 @@ using UnityEngine;
 public class PathFinding
 {
     //NEED TO BE GENERIC! 
-    //NO IT DOES NOT!
+    //NO IT DOES NOT! yes it does... LATER!
     private readonly int MOVE_DIAGONAL_COST = 14;
     private readonly int MOVE_STRAIGHT_COST = 10;
 
@@ -147,10 +147,10 @@ public class PathFinding
         float centerX = currentNode.worldPosition.x;
         float centerY = currentNode.worldPosition.y;
 
-        float leftPosX = currentNode.worldPosition.x - 1;
-        float rightPosX = currentNode.worldPosition.x + 1;
-        float upPosY = currentNode.worldPosition.y + 1;
-        float downPosY = currentNode.worldPosition.y - 1;
+        float leftPosX = currentNode.worldPosition.x - grid.cellSize;
+        float rightPosX = currentNode.worldPosition.x + grid.cellSize;
+        float upPosY = currentNode.worldPosition.y + grid.cellSize;
+        float downPosY = currentNode.worldPosition.y - grid.cellSize;
 
         List<Cell> neighbours = new List<Cell>();
 

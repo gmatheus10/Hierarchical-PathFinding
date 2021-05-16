@@ -9,6 +9,11 @@ public class Cluster
     public Vector3 originPosition;
     public Vector3Int gridPosition;
 
+    public float gCost;
+    public float hCost;
+    public float FCost;
+    public Cluster cameFrom;
+
     public List<Cell> bottomBorder;
     public List<Cell> rightBorder;
     public List<Cell> topBorder;
@@ -53,10 +58,6 @@ public class Cluster
             }
         }
 
-    }
-    public void RemoveNodeFromCluster (Node node)
-    {
-        clusterNodes.Remove( node );
     }
     public bool IsPositionInside (Vector3 position)
     {
@@ -131,10 +132,8 @@ public class Cluster
         INTRAEdges.Add( intraEdge );
     }
 
-    public Node GetNode (Vector3 position)
+    public void SetFCost ( )
     {
-        Node searched = this.clusterNodes.Find( node => node.worldPosition == position );
-        return searched;
-
+        this.FCost = this.gCost + this.hCost;
     }
 }

@@ -9,9 +9,7 @@ public class PlayerController : MonoBehaviour
     //This script needs to create a node with the player position
     //and send them to the Hierarchical_Pahtfinding 
     private CreateGrid createGrid;
-    Grid<Cell> grid;
-    Node currentNode;
-    Node destinationNode;
+    public Grid<Cell> grid;
     public class PlayerPositions
     {
         public Vector3 currentPos;

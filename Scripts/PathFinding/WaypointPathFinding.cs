@@ -40,16 +40,6 @@ public class WaypointPathFinding
     {
         Waypoint currentWaypoint = FindClosestWaypoint( start );
         Waypoint endWaypoint = FindClosestWaypoint( destination );
-        //check if currentWaypoint is in the same cluster as endWaypoint
-        //if not then we put a flag to the while loop to get the lowest F cost waypoint after a iteration through the neighbours
-        //then this waypoint will add a
-        if (currentWaypoint.cluster != endWaypoint.cluster)
-        {
-            foreach (var n in endWaypoint.neighbours)
-            {
-
-            }
-        }
         if (currentWaypoint == null || endWaypoint == null || currentWaypoint == endWaypoint)
         {
             return null;
@@ -68,6 +58,27 @@ public class WaypointPathFinding
         while (openList.Count > 0)
         {
             currentWaypoint = openList.Values[0];
+
+            if (currentWaypoint.cluster != endWaypoint.cluster)
+            {
+                if (openList.Values.Count > 1)
+                {
+                    float lowest = Mathf.Infinity;
+                    Waypoint addNeighbour = null;
+                    foreach (var n in endWaypoint.neighbours)
+                    {
+                        float dist = ( openList.Values[0].position - n.position ).magnitude;
+                        if (dist < lowest)
+                        {
+                            addNeighbour = n;
+                            lowest = dist;
+                        }
+                    }
+                    endWaypoint.neighbours.Find( e => e == addNeighbour )?.neighbours.Add( openList.Values[0] );
+                    openList.Values[0].neighbours.Add( addNeighbour );
+                }
+            }
+
             openList.RemoveAt( 0 );
 
             if (currentWaypoint.position == endWaypoint.position)
