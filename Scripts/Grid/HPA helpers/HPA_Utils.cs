@@ -47,26 +47,36 @@ public static class HPA_Utils
         }
     }
 
-    public static void ShowPathLines (List<Vector3> path)
+    public static void ShowPathLines (List<Vector3> path, Color color)
     {
         if (path != null)
         {
             for (int i = 1; i <= path.Count - 1; i++)
             {
-                Debug.DrawLine( path[i], path[i - 1], Color.red, 15f );
+                Debug.DrawLine( path[i], path[i - 1], color, 15f );
             }
         }
     }
-    public static void ShowPathLines (List<Cluster> path)
+    public static void ShowPathLines (List<Cluster> path, Color color)
     {
         List<Vector3> pathPositions = new List<Vector3>();
         if (path != null)
         {
             foreach (var c in path)
             {
-                pathPositions.Add( c.originPosition );
+                pathPositions.Add( c.originPosition + new Vector3( c.size.x, c.size.y, 0 ) * 0.5f );
             }
         }
-        ShowPathLines( pathPositions );
+        ShowPathLines( pathPositions, color );
+    }
+    public static void ShowPathClusters (List<Cluster> path, Color color)
+    {
+        if (path != null)
+        {
+            foreach (var c in path)
+            {
+                DrawClusters( c, color );
+            }
+        }
     }
 }

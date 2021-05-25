@@ -6,12 +6,17 @@ public class Entrance
 {
     public Cluster cluster1;
     public Cluster cluster2;
+
     public Vector3 originPosition;
     public Vector3 endPosition;
+
     public List<Cell> entranceTiles = new List<Cell>();
     public List<Cell> symmEntranceTiles = new List<Cell>();
+
     public List<Node> entranceNodes = new List<Node>();
     public List<Edge> entranceEdges = new List<Edge>();
+
+    public bool isBlocked = false;
     public enum Orientation
     {
         North, East, South, West

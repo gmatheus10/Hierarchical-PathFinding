@@ -1,27 +1,50 @@
 using System.Collections;
+using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class AbstractGraph : MonoBehaviour
 {
+    private CreateGrid createGrid;
     public Grid<Cell> grid;
+
     public int Level;
     public Vector2Int LevelOneClusterSize;
-    private CreateGrid createGrid;
+
     private Cluster[,] clustersLevel1;
     private Cluster[,] multiLevelCluster;
     public List<Cluster[,]> allClustersAllLevels = new List<Cluster[,]>();
-    List<Entrance> setOfEntrances = new List<Entrance>();
+
+    public Dictionary<string, Entrance> setOfEntrances = new Dictionary<string, Entrance>();
+
+    private PlayerController controller;
     private void Awake ( )
     {
         createGrid = gameObject.GetComponent<CreateGrid>();
+        controller = GameObject.FindGameObjectWithTag( "Player" ).GetComponent<PlayerController>();
     }
     private void Start ( )
     {
 
         grid = createGrid.grid;
         PreProcessing( Level );
+        controller.OnPlayerDestinationSet += TestSomething;
     }
+    void TestSomething (object sender, PlayerController.PlayerPositions pos)
+    {
+        //foreach (KeyValuePair<string, Entrance> pair in setOfEntrances)
+        //{
+        //    if (pair.Value.isBlocked)
+        //    {
+        //        foreach (Cell c in pair.Value.entranceTiles)
+        //        {
+        //            HPA_Utils.DrawCrossInCell( c, Color.blue );
+        //            Debug.Log( pair.Key );
+        //        }
+        //    }
+        //}
+    }
+
     void PreProcessing (int maxLevel)
     {
         AbstractMaze();
@@ -74,8 +97,7 @@ public class AbstractGraph : MonoBehaviour
         {
             if (IsAdjacent( c1, nextCluster ))
             {
-                Entrance entrance = BuildEntrances( c1, nextCluster );
-                setOfEntrances.Add( entrance );
+                BuildEntrances( c1, nextCluster );
             }
         }
 
@@ -161,9 +183,11 @@ public class AbstractGraph : MonoBehaviour
 
     }
     // ////////////////////////////////////////////////////////////////////
-    private Entrance BuildEntrances (Cluster c1, Cluster c2)
+    private void BuildEntrances (Cluster c1, Cluster c2)
     {
         Entrance entrance = new Entrance();
+        Entrance symmEntrance = new Entrance();
+
         List<Cell> entranceCells = new List<Cell>();
         List<Cell> symmEntranceCells = new List<Cell>();
 
@@ -191,7 +215,25 @@ public class AbstractGraph : MonoBehaviour
 
         entrance.FillEntrance( entranceCells );
         entrance.FillSymmEntrance( symmEntranceCells );
+        entrance.SetClusters( c1, c2 );
 
+        symmEntrance.FillEntrance( symmEntranceCells );
+        symmEntrance.FillSymmEntrance( entranceCells );
+        symmEntrance.SetClusters( c2, c1 );
+
+        c1.AddEntrance( entrance );
+        c2.AddEntrance( symmEntrance );
+
+        string key1 = $"{c1.originPosition}->{c2.originPosition}";
+        if (!setOfEntrances.ContainsKey( key1 ))
+        {
+            setOfEntrances.Add( key1, entrance );
+        }
+        string key2 = $"{c2.originPosition}->{c1.originPosition}";
+        if (!setOfEntrances.ContainsKey( key2 ))
+        {
+            setOfEntrances.Add( key2, symmEntrance );
+        }
         void AddCellsToLists (Cell cell1, Cell cell2)
         {
             entranceCells.Add( cell1 );
@@ -202,17 +244,13 @@ public class AbstractGraph : MonoBehaviour
             if (CheckOrientation( c1Orientation, c2Orientation ))
             {
                 entrance.SetOrientation( c1Orientation, c2Orientation );
+                symmEntrance.SetOrientation( c2Orientation, c1Orientation );
             }
         }
         bool CheckOrientation (Entrance.Orientation c1Orientation, Entrance.Orientation c2Orientation)
         {
             return entrance.C1Orientation != c1Orientation || entrance.C2Orientation != c2Orientation;
         }
-        entrance.SetClusters( c1, c2 );
-
-        c1.AddEntrance( entrance );
-        c2.AddEntrance( entrance );
-        return entrance;
     }
     private bool IsAdjacent (Cluster c1, Cluster c2)
     {
@@ -252,40 +290,42 @@ public class AbstractGraph : MonoBehaviour
     // ///////////////////////////////////////////////////////////////////
     void BuildGraph ( )
     {
-        foreach (Entrance entrance in setOfEntrances)
+        foreach (KeyValuePair<string, Entrance> entrance in setOfEntrances)
         {
-            bool isNorthOrSouth = entrance.C1Orientation == Entrance.Orientation.North || entrance.C1Orientation == Entrance.Orientation.South;
-            List<Cell> cells = entrance.GetEntrance();
-            int x = 0;
+            List<Cell> cells = entrance.Value.GetEntrance();
+            List<Cell> vacant = new List<Cell>();
+            List<Cell> full = new List<Cell>();
+            int middle = 0;
             for (int i = 0; i < cells.Count; i++)
             {
                 Cell c = cells[i];
-                if (!c.isWall && c != cells[cells.Count - 1])
+
+                if (!c.isWall)
                 {
-                    x++;
+                    vacant.Add( c );
                 }
                 else
                 {
-                    int middle = ( x ) / 2;
-                    if (c == cells[cells.Count - 1] && x == 0)
+                    full.Add( c );
+                    if (vacant.Count >= 1)
                     {
-                        middle = cells.Count - 1;
+                        middle = Mathf.FloorToInt( vacant.Count * 0.5f );
+                        InstantiateNode( entrance.Value, vacant[middle] );
+                        vacant.Clear();
                     }
-                    if (isNorthOrSouth)
+                    if (full.Count == cells.Count)
                     {
-                        float entranceStart = cells[0].worldPosition.x;
-                        Cell middleCell = grid.GetGridObject( new Vector3( entranceStart + middle, c.worldPosition.y, 0 ) );
-                        InstantiateNode( entrance, middleCell );
-                    }
-                    else
-                    {
-                        float entranceStart = cells[0].worldPosition.y;
-                        Cell middleCell = grid.GetGridObject( new Vector3( c.worldPosition.x, entranceStart + middle, 0 ) );
-                        InstantiateNode( entrance, middleCell );
+                        entrance.Value.isBlocked = true;
                     }
                 }
             }
+            if (vacant.Count > 0)
+            {
+                middle = Mathf.FloorToInt( vacant.Count * 0.5f );
+                InstantiateNode( entrance.Value, vacant[middle] );
+            }
         }
+        #region buildSubGrid
         for (int i = 0; i < clustersLevel1.GetLength( 0 ); i++)
         {
             for (int j = 0; j < clustersLevel1.GetLength( 1 ); j++)
@@ -298,6 +338,7 @@ public class AbstractGraph : MonoBehaviour
 
             }
         }
+        #endregion
         allClustersAllLevels.Add( clustersLevel1 );
     }
 
@@ -311,19 +352,28 @@ public class AbstractGraph : MonoBehaviour
             {
                 Cluster c1 = entrance.cluster1;
                 Cluster c2 = entrance.cluster2;
+
                 Node c1Node = NewNode( c1, middleCell );
                 Node c2Node = NewNode( c2, symmMiddle );
+
                 c1Node.pair = c2Node;
                 c2Node.pair = c1Node;
+
                 AddNode( entrance, c1Node, 1 );
                 AddNode( entrance, c2Node, 1 );
-
 
                 AddEdge( entrance, c1Node, c2Node );
                 c1.AddNodeToCluster( c1Node );
                 c2.AddNodeToCluster( c2Node );
-
             }
+            else
+            {
+                entrance.isBlocked = true;
+            }
+        }
+        else
+        {
+            entrance.isBlocked = true;
         }
         Node NewNode (Cluster cluster, Cell CellNode)
         {
@@ -519,9 +569,9 @@ public class AbstractGraph : MonoBehaviour
 
     private void UpdateEntrances (Cluster cluster, Cluster nextCluster, int level)
     {
-        foreach (Entrance entrance in setOfEntrances)
+        foreach (KeyValuePair<string, Entrance> entrance in setOfEntrances)
         {
-            entrance.LevelUpEntrance( cluster, nextCluster, level );
+            entrance.Value.LevelUpEntrance( cluster, nextCluster, level );
         }
         UpdateNodes( cluster, nextCluster, level );
 

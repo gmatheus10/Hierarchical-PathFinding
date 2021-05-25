@@ -6,8 +6,7 @@ public class PathFinding
 {
     //NEED TO BE GENERIC! 
     //NO IT DOES NOT! yes it does... LATER!
-    private readonly int MOVE_DIAGONAL_COST = 14;
-    private readonly int MOVE_STRAIGHT_COST = 10;
+
 
     private Grid<Cell> grid;
     private List<Cell> openList;
@@ -42,7 +41,8 @@ public class PathFinding
         ScanGridAndSetDefault();
 
         startNode.gCost = 0;
-        startNode.hCost = CalculateManhatamDistance( startNode, endNode );
+        // startNode.hCost = CalculateManhatamDistance( startNode, endNode );
+        startNode.hCost = Utils.ManhatamDistance( startNode, endNode );
         startNode.CalculateF();
         // //
         while (openList.Count > 0)
@@ -117,7 +117,8 @@ public class PathFinding
                 continue;
             }
 
-            int tentativeGCost = currentNode.gCost + CalculateManhatamDistance( currentNode, neighbour );
+            // int tentativeGCost = currentNode.gCost + CalculateManhatamDistance( currentNode, neighbour );
+            int tentativeGCost = currentNode.gCost + Utils.ManhatamDistance( currentNode, neighbour );
 
             if (tentativeGCost < neighbour.gCost)
             {
@@ -132,7 +133,8 @@ public class PathFinding
     {
         neighbour.cameFromNode = currentNode;
         neighbour.gCost = tentativeGCost;
-        neighbour.hCost = CalculateManhatamDistance( neighbour, endNode );
+        neighbour.hCost = Utils.ManhatamDistance( neighbour, endNode );
+        //neighbour.hCost = CalculateManhatamDistance( neighbour, endNode );
         neighbour.CalculateF();
     }
     private void IncludeNeighbourOnOpenList (Cell neighbour)
@@ -228,13 +230,13 @@ public class PathFinding
         }
     }
     ///  ////////////////////////////////////////////////////////////////////////
-    private int CalculateManhatamDistance (Cell a, Cell b)
-    {
-        int xDistance = Mathf.Abs( a.gridPosition.x - b.gridPosition.x );
-        int yDistance = Mathf.Abs( a.gridPosition.y - b.gridPosition.y );
-        int remaining = Mathf.Abs( xDistance - yDistance );
-        return MOVE_DIAGONAL_COST * Mathf.Min( xDistance, yDistance ) + MOVE_STRAIGHT_COST * remaining;
-    }
+    //private int CalculateManhatamDistance (Cell a, Cell b)
+    //{
+    //    int xDistance = Mathf.Abs( a.gridPosition.x - b.gridPosition.x );
+    //    int yDistance = Mathf.Abs( a.gridPosition.y - b.gridPosition.y );
+    //    int remaining = Mathf.Abs( xDistance - yDistance );
+    //    return MOVE_DIAGONAL_COST * Mathf.Min( xDistance, yDistance ) + MOVE_STRAIGHT_COST * remaining;
+    //}
 
     public void SnapToGrid (GameObject objectToSnap)
     {
