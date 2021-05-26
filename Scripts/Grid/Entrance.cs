@@ -14,7 +14,6 @@ public class Entrance
     public List<Cell> symmEntranceTiles = new List<Cell>();
 
     public List<Node> entranceNodes = new List<Node>();
-    public List<Edge> entranceEdges = new List<Edge>();
 
     public bool isBlocked = false;
     public enum Orientation
@@ -83,10 +82,6 @@ public class Entrance
             return null;
         }
     }
-    public void SetEdges (Edge edge)
-    {
-        entranceEdges.Add( edge );
-    }
     public void LevelUpEntrance (Cluster cluster1, Cluster cluster2, int level)
     {
 
@@ -99,22 +94,11 @@ public class Entrance
             cluster1.AddEntrance( this );
             this.cluster2 = cluster2;
             cluster2.AddEntrance( this );
-            UpdateEdges( level );
         }
 
     }
     public bool IsNodeInside (Node node)
     {
         return entranceNodes.Contains( node );
-    }
-    private void UpdateEdges (int level)
-    {
-        foreach (Edge edge in entranceEdges)
-        {
-            if (edge.Level != level)
-            {
-                edge.Level = level;
-            }
-        }
     }
 }

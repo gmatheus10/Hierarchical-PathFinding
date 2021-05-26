@@ -14,15 +14,12 @@ public class CreateGrid : MonoBehaviour
         InstatiateNewGrid();
     }
 
-    public delegate void SendGrid (Grid<Cell> grid);
-    public event SendGrid OnGridCreation;
     private void InstatiateNewGrid ( )
     {
         int gridSizeX = Mathf.RoundToInt( gridSize.x );
         int gridSizeY = Mathf.RoundToInt( gridSize.y );
         Vector3 originPosition = gameObject.transform.position;
         grid = new Grid<Cell>( gridSizeX, gridSizeY, cellSize, originPosition, InstatiateCell, true );
-        OnGridCreation?.Invoke( grid );
     }
 
     private Cell InstatiateCell (Grid<Cell> g, int x, int y)
@@ -42,20 +39,5 @@ public class CreateGrid : MonoBehaviour
         Gizmos.DrawLine( RIGHT_DOWN, RIGHT_UP );
         Gizmos.DrawLine( LEFT_UP, RIGHT_UP );
 
-    }
-    public event EventHandler<OnGridEventArgs> OnGridEnter;
-    public class OnGridEventArgs : EventArgs
-    {
-        public Grid<Cell> grid;
-        public GameObject gridContainer;
-        public OnGridEventArgs (Grid<Cell> grid, GameObject gridContainer)
-        {
-            this.grid = grid;
-            this.gridContainer = gridContainer;
-        }
-    }
-    private void OnTriggerStay2D (Collider2D collision)
-    {
-        OnGridEnter?.Invoke( this, new OnGridEventArgs( grid, gameObject ) );
     }
 }

@@ -4,10 +4,8 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    //will  this script be on the player or on the mouse object?
-    //This script needs to create a node with the mouse position
-    //This script needs to create a node with the player position
-    //and send them to the Hierarchical_Pahtfinding 
+    //this script sends the player position and mouse position, when clicked, as eventArg to whoever gets
+    //subscribed: Hierarchical_Pathfinding.cs
     private CreateGrid createGrid;
     public Grid<Cell> grid;
     public class PlayerPositions
@@ -45,12 +43,12 @@ public class PlayerController : MonoBehaviour
             Vector3 mousePosition = Utils.GetMousePosition();
             Vector3 currentPos = GetGridWorldPosition( gameObject.transform.position );
             Vector3 destinationPos = GetGridWorldPosition( mousePosition );
+
             PlayerPositions pos = new PlayerPositions( currentPos, destinationPos );
+
             OnPlayerDestinationSet?.Invoke( this, pos );
-            //the other script will check if this is inside the grid;
         }
     }
-    //need to send it to the other script in the moment we press the mouse button
     private Vector3 GetGridWorldPosition (Vector3 position)
     {
         if (grid != null)

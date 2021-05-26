@@ -34,11 +34,6 @@ public static class HPA_Utils
     {
         DrawClusters( cluster.originPosition, cluster.size, color );
     }
-    public static void DrawEdge (Edge edge, Color color, float duration)
-    {
-        Debug.DrawLine( edge.n1.worldPosition, edge.n2.worldPosition, color, duration );
-    }
-
     public static void DrawAllNodesInCluster (Cluster cluster)
     {
         foreach (Node node in cluster.clusterNodes)

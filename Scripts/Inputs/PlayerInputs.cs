@@ -2,11 +2,11 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class CameraSystem : MonoBehaviour
+public class PlayerInputs
 {
-    private void Start ( )
-    {
-    }
+    //HPA Inputs
+    //Mouse input
+
 
 
 

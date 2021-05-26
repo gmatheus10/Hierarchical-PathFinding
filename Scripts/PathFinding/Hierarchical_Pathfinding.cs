@@ -4,25 +4,25 @@ using UnityEngine;
 public class Hierarchical_Pathfinding : MonoBehaviour
 {
     //Recieves the Node from PlayerController and converts into a path list
-    // Give the path list to the PF_Module script
+    // Give the path list to the Movement.cs
     private int MaxLevel;
     private AbstractGraph abstractGraph;
-    private PathFinding pathFinding;
-    private WaypointPathFinding waypointPathFinding;
     private Vector3 startPos;
     private Vector3 goalPos;
     //Events publishers scripts
     private PlayerController playerController;
     private void Awake ( )
     {
-        abstractGraph = gameObject.GetComponent<AbstractGraph>();
-        playerController = GameObject.FindGameObjectWithTag( "Player" ).GetComponent<PlayerController>();
+        abstractGraph = GameObject.FindGameObjectWithTag( "Grid" ).GetComponent<AbstractGraph>();
+        playerController = gameObject.GetComponent<PlayerController>();
     }
     private void Start ( )
     {
         playerController.OnPlayerDestinationSet += PlayerController_DestinationRecieved;
         MaxLevel = abstractGraph.Level;
     }
+    public delegate void SendPathTree (object sender, TreeData<List<Cluster>> tree);
+    public event SendPathTree OnTreeBuilt;
     private void PlayerController_DestinationRecieved (object sender, PlayerController.PlayerPositions pos)
     {
         startPos = pos.currentPos;
@@ -30,80 +30,25 @@ public class Hierarchical_Pathfinding : MonoBehaviour
 
         List<Cluster> MaxLevelPath = HierarchicalSearch( startPos, goalPos, abstractGraph.Level );
         HPA_Utils.ShowPathClusters( MaxLevelPath, Color.blue );
-        PathTree( MaxLevelPath );
-
+        var pathTree = BuildPathTree( MaxLevelPath );
+        OnTreeBuilt?.Invoke( this, pathTree );
     }
 
     private List<Cluster> HierarchicalSearch (Vector3 start, Vector3 end, int level)
     {
-        waypointPathFinding = new WaypointPathFinding();
-
-        InsertNode( start, level );
-        InsertNode( end, level );
         List<Cluster> abstractPath = SearchForPath( startPos, goalPos, level );
         //refine the path by reducing it in small level 1 lists to pass to the PF_Module(renaming it later) so that it can move the object in the grid
         return abstractPath;
-        void InsertNode (Vector3 Pos, int maxLevel)
-        {
-            List<Cluster[,]> allClusters = abstractGraph.allClustersAllLevels;
-            Node node = null;
-
-            foreach (Cluster[,] setOfClusters in allClusters)
-            {
-                for (int i = 0; i < setOfClusters.GetLength( 0 ); i++)
-                {
-                    for (int j = 0; j < setOfClusters.GetLength( 1 ); j++)
-                    {
-                        Cluster current = setOfClusters[i, j];
-                        if (current.IsPositionInside( Pos ))
-                        {
-                            node = InstantiateNode( Pos, current );
-                            ConnectToBorder( node, current );
-                        }
-                    }
-                }
-            }
-
-            AbstractGraph.LevelUpNode( maxLevel, node );
-
-            static Node InstantiateNode (Vector3 Pos, Cluster current)
-            {
-                Node node = new Node();
-                node.SetPositions( Pos );
-                node.cluster = current;
-                return node;
-            }
-            void ConnectToBorder (Node node, Cluster cluster)
-            {
-                int level = cluster.level;
-                Edge edge = null;
-                List<Cell> path = null;
-                pathFinding = new PathFinding( cluster.clusterGrid );
-                foreach (Node n in cluster.clusterNodes)
-                {
-                    if (n.level < level)
-                    {
-                        continue;
-                    }
-                    path = pathFinding.FindPath( node.worldPosition, n.worldPosition );
-                    if (path != null)
-                    {
-                        edge = new Edge( node, n, level, Edge.EdgeType.INTRA );
-                        HPA_Utils.DrawCrossInPosition( node.worldPosition, Color.green );
-
-                    }
-                }
-            }
-        }
     }
 
-    private void PathTree (List<Cluster> MaxLevelPath)
+    private TreeData<List<Cluster>> BuildPathTree (List<Cluster> MaxLevelPath)
     {
-        TreeData<List<Cluster>> pathTree = new TreeData<List<Cluster>>( $"Level{MaxLevel}", MaxLevelPath );
-        Vector3 startPosition = startPos;
-        NavigatingOnTree( MaxLevelPath );
+        TreeData<List<Cluster>> pathTree = new TreeData<List<Cluster>>( MaxLevel, 0, MaxLevelPath );
 
-        void NavigatingOnTree (List<Cluster> path)
+        Vector3 startPosition = startPos;
+        NavigatingOnTree( MaxLevelPath, pathTree );
+        return pathTree;
+        void NavigatingOnTree (List<Cluster> path, TreeData<List<Cluster>> tree)
         {
             Vector3 navStart = Vector3.zero;
             for (int i = 1; i <= path.Count; i++)
@@ -117,6 +62,7 @@ public class Hierarchical_Pathfinding : MonoBehaviour
                 }
                 else
                 {
+                    //create the subTree here
                     try
                     {
                         Cluster nextCluster = path[i];
@@ -223,9 +169,9 @@ public class Hierarchical_Pathfinding : MonoBehaviour
                 {
                     HPA_Utils.ShowPathClusters( lesserPath, Color.yellow );
                     HPA_Utils.ShowPathLines( lesserPath, Color.red );
-                    TreeData<List<Cluster>> subTree = new TreeData<List<Cluster>>( $"Level{lesserLevel}.{i - 1}", lesserPath );
-                    pathTree.Add( subTree );
-                    NavigatingOnTree( lesserPath );
+                    TreeData<List<Cluster>> lesserTree = new TreeData<List<Cluster>>( lesserLevel, i - 1, lesserPath );
+                    tree.Add( lesserTree );
+                    NavigatingOnTree( lesserPath, lesserTree );
                 }
             }
         }

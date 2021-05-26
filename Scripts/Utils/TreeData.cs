@@ -3,33 +3,38 @@ using System.Collections.Generic;
 
 public class TreeData<T> : IEnumerable<TreeData<T>>
 {
-    private readonly Dictionary<string, TreeData<T>> children = new Dictionary<string, TreeData<T>>();
-    public readonly string ID;
+    public readonly Dictionary<int[,], TreeData<T>> Children = new Dictionary<int[,], TreeData<T>>();
+    public readonly int[,] LevelBranch;
     public TreeData<T> Parent { get; private set; }
-    T Data { get; }
-    public TreeData (string ID, T Data)
+    public T Data { get; }
+    public TreeData (int Level, int Branch, T Data)
     {
-        this.ID = ID;
+        int[,] LevelBranch = { { Level }, { Branch } };
+        this.LevelBranch = LevelBranch;
         this.Data = Data;
     }
-    public TreeData<T> GetChild (string ID)
-    {
-        return this.children[ID];
-    }
-
     public void Add (TreeData<T> item)
     {
         if (item.Parent != null)
         {
-            item.Parent.children.Remove( item.ID );
+            item.Parent.Children.Remove( item.LevelBranch );
         }
 
         item.Parent = this;
-        this.children.Add( item.ID, item );
+        this.Children.Add( item.LevelBranch, item );
     }
+    public TreeData<T> this[int Level, int Branch]
+    {
+        get
+        {
+            int[,] key = { { Level }, { Branch } };
+            return Children[key];
+        }
+    }
+
     public IEnumerator<TreeData<T>> GetEnumerator ( )
     {
-        return this.children.Values.GetEnumerator();
+        return this.Children.Values.GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator ( )
@@ -37,5 +42,6 @@ public class TreeData<T> : IEnumerable<TreeData<T>>
         return this.GetEnumerator();
     }
 
-    public int Count { get { return this.children.Count; } }
+    public int Count { get { return this.Children.Count; } }
+
 }

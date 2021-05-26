@@ -14,14 +14,9 @@ public class Cluster
     public float FCost;
     public Cluster cameFrom;
 
-    public List<Cell> bottomBorder;
-    public List<Cell> rightBorder;
-    public List<Cell> topBorder;
-    public List<Cell> leftBorder;
-
+    public Dictionary<string, List<Cell>> borders = new Dictionary<string, List<Cell>>();
     public List<Entrance> entrances = new List<Entrance>();
     public List<Node> clusterNodes = new List<Node>();
-    public List<Edge> INTRAEdges = new List<Edge>();
     public int level;
 
     public List<Cluster> lesserLevelClusters = new List<Cluster>();
@@ -39,13 +34,6 @@ public class Cluster
     public void AddEntrance (Entrance entrance)
     {
         entrances.Add( entrance );
-    }
-    public void BuildBorders (List<Cell> bottomBorder, List<Cell> leftBorder, List<Cell> topBorder, List<Cell> rightBorder)
-    {
-        this.bottomBorder = bottomBorder;
-        this.leftBorder = leftBorder;
-        this.topBorder = topBorder;
-        this.rightBorder = rightBorder;
     }
     public void AddNodeToCluster (Node node)
     {
@@ -127,11 +115,6 @@ public class Cluster
     {
         return clusterGrid.IsInsideGrid( node.worldPosition );
     }
-    public void AddEdge (Edge intraEdge)
-    {
-        INTRAEdges.Add( intraEdge );
-    }
-
     public void SetFCost ( )
     {
         this.FCost = this.gCost + this.hCost;

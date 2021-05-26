@@ -17,32 +17,14 @@ public class AbstractGraph : MonoBehaviour
 
     public Dictionary<string, Entrance> setOfEntrances = new Dictionary<string, Entrance>();
 
-    private PlayerController controller;
     private void Awake ( )
     {
         createGrid = gameObject.GetComponent<CreateGrid>();
-        controller = GameObject.FindGameObjectWithTag( "Player" ).GetComponent<PlayerController>();
     }
     private void Start ( )
     {
-
         grid = createGrid.grid;
         PreProcessing( Level );
-        controller.OnPlayerDestinationSet += TestSomething;
-    }
-    void TestSomething (object sender, PlayerController.PlayerPositions pos)
-    {
-        //foreach (KeyValuePair<string, Entrance> pair in setOfEntrances)
-        //{
-        //    if (pair.Value.isBlocked)
-        //    {
-        //        foreach (Cell c in pair.Value.entranceTiles)
-        //        {
-        //            HPA_Utils.DrawCrossInCell( c, Color.blue );
-        //            Debug.Log( pair.Key );
-        //        }
-        //    }
-        //}
     }
 
     void PreProcessing (int maxLevel)
@@ -150,10 +132,16 @@ public class AbstractGraph : MonoBehaviour
     }
     private void FillCluster (Cluster c)
     {
+        string bottom = "bottom";
+        string top = "top";
+        string right = "right";
+        string left = "left";
+
         List<Cell> bottomBorder = new List<Cell>();
         List<Cell> topBorder = new List<Cell>();
         List<Cell> rightBorder = new List<Cell>();
         List<Cell> leftBorder = new List<Cell>();
+
         for (int i = 0; i < c.size.x; i++)
         {
             Vector3 bottomCellPosition = new Vector3( i, 0, 0 ) + c.originPosition;
@@ -166,7 +154,6 @@ public class AbstractGraph : MonoBehaviour
                 Cell cell = grid.GetGridObject( cellPosition );
                 if (j == c.size.y - 1)
                 {
-
                     topBorder.Add( cell );
                 }
                 if (i == c.size.x - 1)
@@ -179,7 +166,10 @@ public class AbstractGraph : MonoBehaviour
                 }
             }
         }
-        c.BuildBorders( bottomBorder, leftBorder, topBorder, rightBorder );
+        c.borders.Add( bottom, bottomBorder );
+        c.borders.Add( left, leftBorder );
+        c.borders.Add( right, rightBorder );
+        c.borders.Add( top, topBorder );
 
     }
     // ////////////////////////////////////////////////////////////////////
@@ -191,10 +181,13 @@ public class AbstractGraph : MonoBehaviour
         List<Cell> entranceCells = new List<Cell>();
         List<Cell> symmEntranceCells = new List<Cell>();
 
-        for (int i = 0; i < c1.rightBorder.Count; i++)
+        List<Cell> C1rightBorder = c1.borders["right"];
+        List<Cell> C2leftBorder = c2.borders["left"];
+
+        for (int i = 0; i < C1rightBorder.Count; i++)
         {
-            Cell cell1 = c1.rightBorder[i];
-            Cell cell2 = c2.leftBorder[i];
+            Cell cell1 = C1rightBorder[i];
+            Cell cell2 = C2leftBorder[i];
             if (cell1.gridPosition.x + 1 == cell2.gridPosition.x)
             {
                 AddCellsToLists( cell1, cell2 );
@@ -202,10 +195,13 @@ public class AbstractGraph : MonoBehaviour
             }
         }
 
-        for (int i = 0; i < c1.topBorder.Count; i++)
+        List<Cell> C1topBorder = c1.borders["top"];
+        List<Cell> C2bottomBorder = c2.borders["bottom"];
+
+        for (int i = 0; i < C1topBorder.Count; i++)
         {
-            Cell cell1 = c1.topBorder[i];
-            Cell cell2 = c2.bottomBorder[i];
+            Cell cell1 = C1topBorder[i];
+            Cell cell2 = C2bottomBorder[i];
             if (cell1.gridPosition.y + 1 == cell2.gridPosition.y)
             {
                 AddCellsToLists( cell1, cell2 );
@@ -334,7 +330,6 @@ public class AbstractGraph : MonoBehaviour
                 Grid<Cell> clusterGrid = grid.GetFractionOfGrid( cluster.originPosition, cluster.size, false );
                 cluster.AddGrid( clusterGrid );
                 PathFinding pathFinding = new PathFinding( clusterGrid );
-                CalculateEdge( cluster, cluster.clusterNodes, pathFinding, 1 );
 
             }
         }
@@ -362,7 +357,6 @@ public class AbstractGraph : MonoBehaviour
                 AddNode( entrance, c1Node, 1 );
                 AddNode( entrance, c2Node, 1 );
 
-                AddEdge( entrance, c1Node, c2Node );
                 c1.AddNodeToCluster( c1Node );
                 c2.AddNodeToCluster( c2Node );
             }
@@ -384,96 +378,11 @@ public class AbstractGraph : MonoBehaviour
             return node;
         }
 
-        void AddEdge (Entrance entrance, Node c1Node, Node c2Node)
-        {
-            Edge edge = new Edge( c1Node, c2Node, 1, Edge.EdgeType.INTER, 1 );
-            entrance.SetEdges( edge );
-        }
     }
     private void AddNode (Entrance entrance, Node node, int Level)
     {
-        //DrawCrossInCell( node.cell, Color.yellow );
         node.level = Level;
         entrance.AddNode( node );
-    }
-    private void CalculateEdge (Cluster cluster, List<Node> nodes, PathFinding pathFinding, int level)
-    {
-        List<Cell> path = null;
-        Edge edge = null;
-        for (int x = 0; x <= nodes.Count - 1; x++)
-        {
-            Node node1 = nodes[x];
-
-            for (int y = 0; y <= nodes.Count - 1; y++)
-            {
-                Node node2 = nodes[y];
-                if (node1 == node2)
-                {
-                    continue;
-                }
-                if (cluster.IsNodeInside( node1 ))
-                {
-                    if (cluster.IsNodeInside( node2 ))
-                    {
-                        try
-                        {
-                            if (level == 1)
-                            {
-                                path = pathFinding.FindPath( node1.worldPosition, node2.worldPosition );
-                                if (path != null)
-                                {
-                                    edge = new Edge( node1, node2, level, Edge.EdgeType.INTRA, path.Count );
-                                }
-                            }
-                            if (level > 1)
-                            {
-                                List<Cluster> lesserClusters = cluster.lesserLevelClusters;
-                                foreach (Cluster subCluster in lesserClusters)
-                                {
-                                    foreach (Cluster nextSubCluster in lesserClusters)
-                                    {
-                                        if (subCluster == nextSubCluster)
-                                        {
-                                            continue;
-                                        }
-                                        if (subCluster.IsNodeInside( node1 ))
-                                        {
-                                            if (nextSubCluster.IsNodeInside( node2 ))
-                                            {
-                                                path = pathFinding.FindPath( node1.worldPosition, node2.worldPosition );
-                                                if (path != null)
-                                                {
-                                                    edge = new Edge( node1, node2, level, Edge.EdgeType.INTRA );
-                                                    subCluster.AddEdge( edge );
-                                                }
-
-                                            }
-                                        }
-
-                                    }
-                                }
-
-                                if (level == Level)
-                                {
-
-                                    //ShowPathLines( path );
-                                    if (edge != null)
-                                    {
-                                        //HPA_Utils.DrawEdge( edge, Color.red, 10000f );
-
-                                    }
-                                }
-                            }
-                        }
-                        catch (System.Exception)
-                        {
-                            throw;
-                        }
-                    }
-                }
-            }
-        }
-
     }
     // ///////////////////////////////////////////////////////////////////
     void AddLevelToGraph (int level)
@@ -542,9 +451,6 @@ public class AbstractGraph : MonoBehaviour
                 #endregion
                 Grid<Cell> clusterGrid = grid.GetFractionOfGrid( currentCluster.originPosition, currentCluster.size, false );
                 currentCluster.AddGrid( clusterGrid );
-                PathFinding pathFinding = new PathFinding( clusterGrid );
-                CalculateEdge( currentCluster, currentCluster.clusterNodes, pathFinding, level );
-
             }
 
         }
