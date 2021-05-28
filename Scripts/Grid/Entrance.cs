@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -25,6 +26,18 @@ public class Entrance
   {
     this.cluster1 = cluster1;
     this.cluster2 = cluster2;
+  }
+  public void SetClusters(Cluster[] pair)
+  {
+    if (pair.Length > 2)
+    {
+      throw new System.Exception("Cannot have more than 2 elements in argument array");
+    }
+    else
+    {
+      this.cluster1 = pair[0];
+      this.cluster2 = pair[1];
+    }
   }
   public void FillEntrance(List<Cell> entranceTiles)
   {
@@ -73,7 +86,7 @@ public class Entrance
       return null;
     }
   }
-  public bool IsLeveling(Cluster cluster1, Cluster cluster2)
+  public bool HaveEntrance(Cluster cluster1, Cluster cluster2)
   {
 
     bool entranceTilesInside = cluster1.IsEntranceInside(this.entranceTiles);
@@ -81,10 +94,6 @@ public class Entrance
     if (entranceTilesInside && symmTilesInside)
     {
       return true;
-      // this.cluster1 = cluster1;
-      // cluster1.AddEntrance(this);
-      // this.cluster2 = cluster2;
-      // cluster2.AddEntrance(this);
     }
     return false;
   }
@@ -93,4 +102,33 @@ public class Entrance
     return entranceNodes.Contains(node);
   }
 
+
+  public Entrance MergeEntrances(params Entrance[] entrances)
+  {
+    Entrance merged = new Entrance();
+
+    merged.SetClusters(entrances[0].GetClusters());
+    merged.originPosition = entrances[0].originPosition;
+    merged.endPosition = entrances[entrances.Length - 1].endPosition;
+
+    List<Cell> mergedTiles = new List<Cell>();
+    List<Cell> mergedSymmTiles = new List<Cell>();
+
+    List<Node> mergedNodes = new List<Node>();
+
+    foreach (Entrance e in entrances)
+    {
+      mergedTiles = mergedTiles.Concat(e.entranceTiles).ToList();
+      mergedSymmTiles = mergedSymmTiles.Concat(e.symmEntranceTiles).ToList();
+      mergedNodes = mergedNodes.Concat(e.entranceNodes).ToList();
+    }
+    merged.entranceTiles = mergedTiles;
+    merged.symmEntranceTiles = mergedSymmTiles;
+    merged.entranceNodes = mergedNodes;
+    if (mergedNodes.Count == 0)
+    {
+      merged.isBlocked = true;
+    }
+    return merged;
+  }
 }

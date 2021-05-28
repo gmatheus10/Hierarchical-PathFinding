@@ -414,34 +414,30 @@ public class AbstractGraph : MonoBehaviour
   private void UpdateEntrances(Cluster cluster, Cluster nextCluster, int level)
   {
     Entrance leveledEntrance = new Entrance();
-    foreach (Cluster subCluster in cluster.lesserLevelClusters)
+    //get the subCluster entrances that connects currentCluster with the nextCluster
+    //get the entranceTiles and merge in one list
+    //get the entranceNodes and merge in one list
+
+    Entrance newEntrance = new Entrance();
+    List<Entrance> merge = new List<Entrance>();
+
+    foreach (KeyValuePair<string, Entrance> pair in setOfEntrances)
     {
-      foreach (var entrance in subCluster.entrances)
+      Entrance entrance = pair.Value;
+      if (entrance.HaveEntrance(cluster, nextCluster))
       {
-        foreach (Node n in entrance.Value.entranceNodes)
-        {
-          if (nextCluster.IsPositionInside(n.pair.worldPosition))
-          {
-            leveledEntrance.AddNode(n);
-          }
-        }
+        merge.Add(entrance);
       }
     }
-    if (leveledEntrance.entranceNodes.Count > 0)
+    newEntrance = newEntrance.MergeEntrances(merge.ToArray());
+    if (cluster.level == 2)
     {
-      leveledEntrance.cluster1 = cluster;
-      leveledEntrance.cluster2 = nextCluster;
-    }
-
-    foreach (KeyValuePair<string, Entrance> entrance in setOfEntrances)
-    {
-
-      if (entrance.Value.IsLeveling(cluster, nextCluster))
+      foreach (Node n in newEntrance.entranceNodes)
       {
-        Entrance newEntrance = entrance.Value;
-        newEntrance.SetClusters(cluster, nextCluster);
+        Debug.Log(cluster.level);
       }
     }
+
     UpdateNodes(cluster, nextCluster, level);
 
   }
