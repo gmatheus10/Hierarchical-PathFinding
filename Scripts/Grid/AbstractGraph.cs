@@ -1,9 +1,12 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class AbstractGraph : MonoBehaviour
 {
+  private DebugOnClick DebugOnClick;
+
   private CreateGrid createGrid;
   public Grid<Cell> grid;
 
@@ -19,13 +22,36 @@ public class AbstractGraph : MonoBehaviour
   private void Awake()
   {
     createGrid = gameObject.GetComponent<CreateGrid>();
+    DebugOnClick = gameObject.GetComponent<DebugOnClick>();
   }
   private void Start()
   {
     grid = createGrid.grid;
     PreProcessing(Level);
+    DebugOnClick.PassMousePosition += DebugCluster;
   }
+  void DebugCluster(Vector3 position)
+  {
+    int LEVEL = 3;
 
+    foreach (Cluster[,] level in allClustersAllLevels)
+    {
+      for (int i = 0; i < level.GetLength(0); i++)
+      {
+        for (int j = 0; j < level.GetLength(1); j++)
+        {
+          Cluster cluster = level[i, j];
+          if (cluster.level == LEVEL)
+          {
+            if (cluster.IsPositionInside(position))
+            {
+              HPA_Utils.DrawClusterEntrances(cluster);
+            }
+          }
+        }
+      }
+    }
+  }
   void PreProcessing(int maxLevel)
   {
     AbstractMaze();
@@ -103,72 +129,77 @@ public class AbstractGraph : MonoBehaviour
     }
     clustersLevel1 = setOfClusters;
     return setOfClusters;
-  }
-  private Cluster InstantiateCluster(int level, int x, int y, Cluster[,] lesserClustersArray)
-  {
-    int levelAdjustmentX = (int)(LevelOneClusterSize.x * Mathf.Pow(2, level - 1));
-    int levelAdjustmentY = (int)(LevelOneClusterSize.y * Mathf.Pow(2, level - 1));
-    Vector2Int size = new Vector2Int(levelAdjustmentX, levelAdjustmentY);
-    Vector3 clusterPosition = grid.GetWorldPosition(x * size.x, y * size.y);
 
-    Cluster cluster = new Cluster(size, clusterPosition, level);
 
-    cluster.SetGridPosition(grid.GetGridPosition(clusterPosition));
-    Color color = new Color(0.3f * level, -1f + 0.7f * level, 0.05f * level, 1);
-    HPA_Utils.DrawClusters(cluster.originPosition, cluster.size, color);
-
-    if (level > 1)
+    Cluster InstantiateCluster(int level, int x, int y, Cluster[,] lesserClustersArray)
     {
-      cluster.AddLesserClusters(lesserClustersArray);
+      int levelAdjustmentX = (int)(LevelOneClusterSize.x * Mathf.Pow(2, level - 1));
+      int levelAdjustmentY = (int)(LevelOneClusterSize.y * Mathf.Pow(2, level - 1));
+      Vector2Int size = new Vector2Int(levelAdjustmentX, levelAdjustmentY);
+      Vector3 clusterPosition = grid.GetWorldPosition(x * size.x, y * size.y);
 
-    }
-    return cluster;
-  }
-  private void FillCluster(Cluster c)
-  {
-    string bottom = "bottom";
-    string top = "top";
-    string right = "right";
-    string left = "left";
+      Cluster cluster = new Cluster(size, clusterPosition, level);
 
-    List<Cell> bottomBorder = new List<Cell>();
-    List<Cell> topBorder = new List<Cell>();
-    List<Cell> rightBorder = new List<Cell>();
-    List<Cell> leftBorder = new List<Cell>();
+      cluster.SetGridPosition(grid.GetGridPosition(clusterPosition));
+      Color color = new Color(0.3f * level, -1f + 0.7f * level, 0.05f * level, 1);
+      HPA_Utils.DrawClusters(cluster.originPosition, cluster.size, color);
 
-    for (int i = 0; i < c.size.x; i++)
-    {
-      Vector3 bottomCellPosition = new Vector3(i, 0, 0) + c.originPosition;
-      Cell bottomCell = grid.GetGridObject(bottomCellPosition);
-
-      bottomBorder.Add(bottomCell);
-      for (int j = 0; j < c.size.y; j++)
+      if (level > 1)
       {
-        Vector3 cellPosition = new Vector3(i, j, 0) + c.originPosition;
-        Cell cell = grid.GetGridObject(cellPosition);
-        if (j == c.size.y - 1)
+        cluster.AddLesserClusters(lesserClustersArray);
+
+      }
+      return cluster;
+    }
+    void FillCluster(Cluster c)
+    {
+      string bottom = "bottom";
+      string top = "top";
+      string right = "right";
+      string left = "left";
+
+      List<Cell> bottomBorder = new List<Cell>();
+      List<Cell> topBorder = new List<Cell>();
+      List<Cell> rightBorder = new List<Cell>();
+      List<Cell> leftBorder = new List<Cell>();
+
+      for (int i = 0; i < c.size.x; i++)
+      {
+        Vector3 bottomCellPosition = new Vector3(i, 0, 0) + c.originPosition;
+        Cell bottomCell = grid.GetGridObject(bottomCellPosition);
+
+        bottomBorder.Add(bottomCell);
+        for (int j = 0; j < c.size.y; j++)
         {
-          topBorder.Add(cell);
-        }
-        if (i == c.size.x - 1)
-        {
-          rightBorder.Add(cell);
-        }
-        if (i == 0)
-        {
-          leftBorder.Add(cell);
+          Vector3 cellPosition = new Vector3(i, j, 0) + c.originPosition;
+          Cell cell = grid.GetGridObject(cellPosition);
+          if (j == c.size.y - 1)
+          {
+            topBorder.Add(cell);
+          }
+          if (i == c.size.x - 1)
+          {
+            rightBorder.Add(cell);
+          }
+          if (i == 0)
+          {
+            leftBorder.Add(cell);
+          }
         }
       }
-    }
-    c.borders.Add(bottom, bottomBorder);
-    c.borders.Add(left, leftBorder);
-    c.borders.Add(right, rightBorder);
-    c.borders.Add(top, topBorder);
+      c.borders.Add(bottom, bottomBorder);
+      c.borders.Add(left, leftBorder);
+      c.borders.Add(right, rightBorder);
+      c.borders.Add(top, topBorder);
 
+    }
   }
+
+
 
   private void BuildEntrances(Cluster c1, Cluster c2, KeyValuePair<string, List<Cell>>[] AdjacentBorder)
   {
+    //SOMETHING IS WRONG HERE
     Entrance entrance = new Entrance();
 
     List<Cell> entranceCells = new List<Cell>();
@@ -179,6 +210,7 @@ public class AbstractGraph : MonoBehaviour
 
     List<Cell> c1BorderCells = C1border.Value;
     List<Cell> c2BorderCells = C2border.Value;
+
 
     for (int i = 0; i < c1BorderCells?.Count; i++)
     {
@@ -200,6 +232,7 @@ public class AbstractGraph : MonoBehaviour
 
     c1.AddEntrance(entrance);
 
+
     string key1 = $"{c1.originPosition}->{c2.originPosition}";
     setOfEntrances.Add(key1, entrance);
 
@@ -211,40 +244,40 @@ public class AbstractGraph : MonoBehaviour
   }
   private KeyValuePair<string, List<Cell>>[] GetAdjacentBorder(Cluster c1, Cluster c2)
   {
-    Vector3Int c1Origin = c1.GridPosition; //BottomLeft
-    Vector3Int c1End = GetClusterEndGridPosition(c1); //UpperRight
+    Vector3Int c1BottomLeft = c1.GridPosition; //BottomLeft
+    Vector3Int c1TopRight = GetClusterEndGridPosition(c1); //UpperRight
 
-    Vector3Int c2Origin = c2.GridPosition; //BottomLeft
-    Vector3Int c2End = GetClusterEndGridPosition(c2); //UpperRight
+    Vector3Int c2BottomLeft = c2.GridPosition; //BottomLeft
+    Vector3Int c2TopRight = GetClusterEndGridPosition(c2); //UpperRight
 
-    Vector3Int c2BotRight = new Vector3Int(c2End.x, c2Origin.y, 0);
-    Vector3Int c2TopLeft = new Vector3Int(c2Origin.x, c2End.y, 0);
+    Vector3Int c2BotRight = new Vector3Int(c2TopRight.x, c2BottomLeft.y, 0);
+    Vector3Int c2TopLeft = new Vector3Int(c2BottomLeft.x, c2TopRight.y, 0);
 
-    Vector3Int c1BotRight = new Vector3Int(c1End.x, c1Origin.y, 0);
-    Vector3Int c1TopLeft = new Vector3Int(c1Origin.x, c1End.y, 0);
+    Vector3Int c1BotRight = new Vector3Int(c1TopRight.x, c1BottomLeft.y, 0);
+    Vector3Int c1TopLeft = new Vector3Int(c1BottomLeft.x, c1TopRight.y, 0);
 
-    if (c1Origin == c2TopLeft && c1BotRight == c2End)
+    if (c1BottomLeft == c2TopLeft && c1BotRight == c2TopRight)
     {
       KeyValuePair<string, List<Cell>> bottom = new KeyValuePair<string, List<Cell>>("bottom", c1.borders["bottom"]);
-      KeyValuePair<string, List<Cell>> top = new KeyValuePair<string, List<Cell>>("top", c2.borders["bottom"]);
+      KeyValuePair<string, List<Cell>> top = new KeyValuePair<string, List<Cell>>("top", c2.borders["top"]);
 
       return new KeyValuePair<string, List<Cell>>[] { bottom, top };
     }
-    else if (c1BotRight == c2Origin && c1End == c2TopLeft)
+    else if (c1BotRight == c2BottomLeft && c1TopRight == c2TopLeft)
     {
       KeyValuePair<string, List<Cell>> right = new KeyValuePair<string, List<Cell>>("right", c1.borders["right"]);
       KeyValuePair<string, List<Cell>> left = new KeyValuePair<string, List<Cell>>("left", c2.borders["left"]);
 
       return new KeyValuePair<string, List<Cell>>[] { right, left };
     }
-    else if (c1TopLeft == c2Origin && c1End == c2BotRight)
+    else if (c1TopLeft == c2BottomLeft && c1TopRight == c2BotRight)
     {
       KeyValuePair<string, List<Cell>> top = new KeyValuePair<string, List<Cell>>("top", c1.borders["top"]);
       KeyValuePair<string, List<Cell>> bottom = new KeyValuePair<string, List<Cell>>("bottom", c2.borders["bottom"]);
 
       return new KeyValuePair<string, List<Cell>>[] { top, bottom };
     }
-    else if (c1Origin == c2BotRight && c1TopLeft == c2End)
+    else if (c1BottomLeft == c2BotRight && c1TopLeft == c2TopRight)
     {
       KeyValuePair<string, List<Cell>> left = new KeyValuePair<string, List<Cell>>("left", c1.borders["left"]);
       KeyValuePair<string, List<Cell>> right = new KeyValuePair<string, List<Cell>>("right", c2.borders["right"]);
@@ -292,71 +325,73 @@ public class AbstractGraph : MonoBehaviour
       if (vacant.Count > 0)
       {
         middle = Mathf.FloorToInt(vacant.Count * 0.5f);
-        InstantiateNode(entrance.Value, vacant[middle]);
+        int half1 = Mathf.FloorToInt(middle * 0.5f);
+        int half2 = Mathf.FloorToInt((middle + vacant.Count) * 0.5f);
+        InstantiateNode(entrance.Value, vacant[half1]);
+        InstantiateNode(entrance.Value, vacant[half2]);
       }
     }
-    #region buildSubGrid
-    for (int i = 0; i < clustersLevel1.GetLength(0); i++)
-    {
-      for (int j = 0; j < clustersLevel1.GetLength(1); j++)
-      {
-        Cluster cluster = clustersLevel1[i, j];
-        Grid<Cell> clusterGrid = grid.GetFractionOfGrid(cluster.originPosition, cluster.size, false);
-        cluster.AddGrid(clusterGrid);
-        PathFinding pathFinding = new PathFinding(clusterGrid);
-
-      }
-    }
-    #endregion
+    ClusterAddGrid();
     allClustersAllLevels.Add(clustersLevel1);
-  }
 
-  private void InstantiateNode(Entrance entrance, Cell middleCell)
-  {
-    if (!middleCell.isWall)
+    void InstantiateNode(Entrance entrance, Cell middleCell)
+
     {
-      Cell symmMiddle = entrance.GetSymmetricalCell(middleCell);
-
-      if (!symmMiddle.isWall)
+      if (!middleCell.isWall)
       {
-        Cluster c1 = entrance.cluster1;
-        Cluster c2 = entrance.cluster2;
+        Cell symmMiddle = entrance.GetSymmetricalCell(middleCell);
 
-        Node c1Node = NewNode(c1, middleCell);
-        Node c2Node = NewNode(c2, symmMiddle);
+        if (!symmMiddle.isWall)
+        {
+          Cluster c1 = entrance.cluster1;
+          Cluster c2 = entrance.cluster2;
 
-        c1Node.pair = c2Node;
-        c2Node.pair = c1Node;
+          Node c1Node = NewNode(c1, middleCell);
+          Node c2Node = NewNode(c2, symmMiddle);
 
-        AddNode(entrance, c1Node, 1);
-        AddNode(entrance, c2Node, 1);
+          c1Node.pair = c2Node;
+          c2Node.pair = c1Node;
 
-        c1.AddNodeToCluster(c1Node);
-        c2.AddNodeToCluster(c2Node);
+          AddNode(entrance, c1Node, 1);
+
+          c1.AddNodeToCluster(c1Node);
+          c2.AddNodeToCluster(c2Node);
+        }
+        else
+        {
+          entrance.isBlocked = true;
+        }
       }
       else
       {
         entrance.isBlocked = true;
       }
+      Node NewNode(Cluster cluster, Cell CellNode)
+      {
+        Node node = new Node(cluster);
+        node.SetEntrance(entrance);
+        node.SetPositions(CellNode.worldPosition);
+        node.SetCell(CellNode);
+        return node;
+      }
+      void AddNode(Entrance entrance, Node node, int Level)
+      {
+        node.level = Level;
+        entrance.AddNode(node);
+      }
     }
-    else
+    void ClusterAddGrid()
     {
-      entrance.isBlocked = true;
+      for (int i = 0; i < clustersLevel1.GetLength(0); i++)
+      {
+        for (int j = 0; j < clustersLevel1.GetLength(1); j++)
+        {
+          Cluster cluster = clustersLevel1[i, j];
+          Grid<Cell> clusterGrid = grid.GetFractionOfGrid(cluster.originPosition, cluster.size, false);
+          cluster.AddGrid(clusterGrid);
+        }
+      }
     }
-    Node NewNode(Cluster cluster, Cell CellNode)
-    {
-      Node node = new Node(cluster);
-      node.SetEntrance(entrance);
-      node.SetPositions(CellNode.worldPosition);
-      node.SetCell(CellNode);
-      return node;
-    }
-
-  }
-  private void AddNode(Entrance entrance, Node node, int Level)
-  {
-    node.level = Level;
-    entrance.AddNode(node);
   }
 
   void AddLevelToGraph(int level)
@@ -377,13 +412,7 @@ public class AbstractGraph : MonoBehaviour
     }
     allClustersAllLevels.Add(multiLevelCluster);
 
-    void HandleMultiLevelClusters(int level, Cluster currentCluster, Cluster nextCluster)
-    {
-      if (!GetAdjacentBorder(currentCluster, nextCluster).Equals(default(KeyValuePair<string, List<string>>)))
-      {
-        UpdateEntrances(currentCluster, nextCluster, level);
-      }
-    }
+
     void UpdateNeighbours(Cluster currentCluster, int level, int i, int j)
     {
 
@@ -408,81 +437,77 @@ public class AbstractGraph : MonoBehaviour
           HandleMultiLevelClusters(level, currentCluster, nextCluster);
         }
       }
-    }
-  }
-
-  private void UpdateEntrances(Cluster cluster, Cluster nextCluster, int level)
-  {
-    Entrance leveledEntrance = new Entrance();
-    //get the subCluster entrances that connects currentCluster with the nextCluster
-    //get the entranceTiles and merge in one list
-    //get the entranceNodes and merge in one list
-
-    Entrance newEntrance = new Entrance();
-    List<Entrance> merge = new List<Entrance>();
-
-    foreach (KeyValuePair<string, Entrance> pair in setOfEntrances)
-    {
-      Entrance entrance = pair.Value;
-      if (entrance.HaveEntrance(cluster, nextCluster))
+      void HandleMultiLevelClusters(int level, Cluster currentCluster, Cluster nextCluster)
       {
-        merge.Add(entrance);
-      }
-    }
-    newEntrance = newEntrance.MergeEntrances(merge.ToArray());
-    if (cluster.level == 2)
-    {
-      foreach (Node n in newEntrance.entranceNodes)
-      {
-        Debug.Log(cluster.level);
-      }
-    }
-
-    UpdateNodes(cluster, nextCluster, level);
-
-  }
-
-
-  private void UpdateNodes(Cluster cluster, Cluster nextCluster, int level)
-  {
-    //  Entrance entrance = cluster.entrances[0];
-    foreach (var entrance in cluster.entrances)
-    {
-      Node node = entrance.Value.entranceNodes[0];
-
-      if (!cluster.clusterNodes.Contains(node))
-      {
-        LevelUpNode(level, node);
-        cluster.AddNodeToCluster(node);
-      }
-      if (!nextCluster.clusterNodes.Contains(node.pair))
-      {
-        LevelUpNode(level, node);
-        nextCluster.AddNodeToCluster(node.pair);
-      }
-
-    }
-
-  }
-
-  public static void LevelUpNode(int level, Node node)
-  {
-    if (node != null)
-    {
-      if (node.level != level)
-      {
-        node.level = level;
-        if (node.pair != null && node.pair.level != level)
+        if (!GetAdjacentBorder(currentCluster, nextCluster).Equals(default(KeyValuePair<string, List<string>>)))
         {
-          node.pair.level = level;
+          UpdateEntrances(currentCluster, nextCluster, level);
         }
       }
-      if (node.pair != null)
+    }
+    void UpdateEntrances(Cluster cluster, Cluster nextCluster, int level)
+    {
+      //get the subCluster entrances that connects currentCluster with the nextCluster
+      //get the entranceTiles and merge in one list
+      //get the entranceNodes and merge in one list
+
+      Entrance newEntrance = new Entrance();
+      List<Entrance> merge = new List<Entrance>();
+
+      foreach (KeyValuePair<string, Entrance> pair in setOfEntrances)
       {
-        //Debug.DrawLine( node.worldPosition, node.pair.worldPosition, Color.red, 10000f );
+        Entrance entrance = pair.Value;
+        if (entrance.HaveEntrance(cluster, nextCluster))
+        {
+          merge.Add(entrance);
+        }
+      }
+
+      newEntrance = newEntrance.MergeEntrances(merge.ToArray());
+      cluster.AddEntrance(newEntrance);
+
+
+      UpdateNodes(cluster, nextCluster, level);
+
+      void UpdateNodes(Cluster cluster, Cluster nextCluster, int level)
+      {
+        //  Entrance entrance = cluster.entrances[0];
+        foreach (var entrance in cluster.entrances)
+        {
+          Node node = entrance.Value.entranceNodes[0];
+
+          if (!cluster.clusterNodes.Contains(node))
+          {
+            LevelUpNode(level, node);
+            cluster.AddNodeToCluster(node);
+          }
+          if (!nextCluster.clusterNodes.Contains(node.pair))
+          {
+            LevelUpNode(level, node);
+            nextCluster.AddNodeToCluster(node.pair);
+          }
+
+        }
+        void LevelUpNode(int level, Node node)
+        {
+          if (node != null)
+          {
+            if (node.level != level)
+            {
+              node.level = level;
+              if (node.pair != null && node.pair.level != level)
+              {
+                node.pair.level = level;
+              }
+            }
+            if (node.pair != null)
+            {
+              //Debug.DrawLine( node.worldPosition, node.pair.worldPosition, Color.red, 10000f );
+            }
+          }
+        }
       }
     }
   }
-
 }
 

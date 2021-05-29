@@ -4,74 +4,103 @@ using UnityEngine;
 
 public static class HPA_Utils
 {
-    public static void DrawCrossInPosition (Vector3 position, Color color)
-    {
-        float crossLength = 0.2f;
-        Vector3 crossX = new Vector3( crossLength, 0, 0 );
-        Vector3 crossY = new Vector3( 0, crossLength, 0 );
-        Debug.DrawLine( position - crossX, position + crossX, color, 100000f );
-        Debug.DrawLine( position - crossY, position + crossY, color, 100000f );
-    }
-    public static void DrawCrossInCell (Cell c, Color color)
-    {
-        DrawCrossInPosition( c.worldPosition, color );
-    }
+  public static void DrawCrossInPosition(Vector3 position, Color color)
+  {
+    float crossLength = 0.2f;
+    Vector3 crossX = new Vector3(crossLength, 0, 0);
+    Vector3 crossY = new Vector3(0, crossLength, 0);
+    Debug.DrawLine(position - crossX, position + crossX, color, 100000f);
+    Debug.DrawLine(position - crossY, position + crossY, color, 100000f);
+  }
+  public static void DrawCrossInCell(Cell c, Color color)
+  {
+    DrawCrossInPosition(c.worldPosition, color);
+  }
 
-    public static void DrawClusters (Vector3 position, float Width, float Height, Color color)
+  public static void DrawClusters(Vector3 position, float Width, float Height, Color color)
+  {
+    ///drawing Cluster border///
+    Debug.DrawLine(position, new Vector3(position.x, position.y + Height), color, 10000f, false);
+    Debug.DrawLine(position, new Vector3(position.x + Width, position.y), color, 10000f, false);
+    Debug.DrawLine(new Vector3(position.x, position.y + Height), new Vector3(position.x + Width, position.y + Height), color, 10000f, false);
+    Debug.DrawLine(new Vector3(position.x + Width, position.y), new Vector3(position.x + Width, position.y + Height), color, 10000f, false);
+    ///drawing Cluster border///
+  }
+  public static void DrawClusters(Vector3 position, Vector2Int size, Color color)
+  {
+    DrawClusters(position, size.x, size.y, color);
+  }
+  public static void DrawClusters(Cluster cluster, Color color)
+  {
+    DrawClusters(cluster.originPosition, cluster.size, color);
+  }
+  public static void DrawNodesInCluster(Cluster cluster)
+  {
+    foreach (Node node in cluster.clusterNodes)
     {
-        ///drawing Cluster border///
-        Debug.DrawLine( position, new Vector3( position.x, position.y + Height ), color, 10000f, false );
-        Debug.DrawLine( position, new Vector3( position.x + Width, position.y ), color, 10000f, false );
-        Debug.DrawLine( new Vector3( position.x, position.y + Height ), new Vector3( position.x + Width, position.y + Height ), color, 10000f, false );
-        Debug.DrawLine( new Vector3( position.x + Width, position.y ), new Vector3( position.x + Width, position.y + Height ), color, 10000f, false );
-        ///drawing Cluster border///
+      DrawCrossInCell(node.cell, Color.yellow);
     }
-    public static void DrawClusters (Vector3 position, Vector2Int size, Color color)
-    {
-        DrawClusters( position, size.x, size.y, color );
-    }
-    public static void DrawClusters (Cluster cluster, Color color)
-    {
-        DrawClusters( cluster.originPosition, cluster.size, color );
-    }
-    public static void DrawAllNodesInCluster (Cluster cluster)
-    {
-        foreach (Node node in cluster.clusterNodes)
-        {
-            DrawCrossInCell( node.cell, Color.yellow );
-        }
-    }
+  }
 
-    public static void ShowPathLines (List<Vector3> path, Color color)
+  public static void DrawClusterEntrances(Cluster cluster)
+  {
+    foreach (var pair in cluster.entrances)
     {
-        if (path != null)
-        {
-            for (int i = 1; i <= path.Count - 1; i++)
-            {
-                Debug.DrawLine( path[i], path[i - 1], color, 15f );
-            }
-        }
+      Entrance current = pair.Value;
+
+      foreach (var cell in current.entranceTiles)
+      {
+        HPA_Utils.DrawCrossInCell(cell, Color.yellow);
+      }
+      foreach (var node in current.entranceNodes)
+      {
+        HPA_Utils.DrawCrossInPosition(node.worldPosition, Color.blue);
+        HPA_Utils.DrawCrossInPosition(node.pair.worldPosition, Color.red);
+      }
     }
-    public static void ShowPathLines (List<Cluster> path, Color color)
+  }
+  public static void DrawClusterBorders(Cluster cluster)
+  {
+    foreach (var border in cluster.borders)
     {
-        List<Vector3> pathPositions = new List<Vector3>();
-        if (path != null)
-        {
-            foreach (var c in path)
-            {
-                pathPositions.Add( c.originPosition + new Vector3( c.size.x, c.size.y, 0 ) * 0.5f );
-            }
-        }
-        ShowPathLines( pathPositions, color );
+      foreach (Cell c in border.Value)
+      {
+        HPA_Utils.DrawCrossInCell(c, Color.yellow);
+      }
     }
-    public static void ShowPathClusters (List<Cluster> path, Color color)
+  }
+
+
+  public static void ShowPathLines(List<Vector3> path, Color color)
+  {
+    if (path != null)
     {
-        if (path != null)
-        {
-            foreach (var c in path)
-            {
-                DrawClusters( c, color );
-            }
-        }
+      for (int i = 1; i <= path.Count - 1; i++)
+      {
+        Debug.DrawLine(path[i], path[i - 1], color, 15f);
+      }
     }
+  }
+  public static void ShowPathLines(List<Cluster> path, Color color)
+  {
+    List<Vector3> pathPositions = new List<Vector3>();
+    if (path != null)
+    {
+      foreach (var c in path)
+      {
+        pathPositions.Add(c.originPosition + new Vector3(c.size.x, c.size.y, 0) * 0.5f);
+      }
+    }
+    ShowPathLines(pathPositions, color);
+  }
+  public static void ShowPathClusters(List<Cluster> path, Color color)
+  {
+    if (path != null)
+    {
+      foreach (var c in path)
+      {
+        DrawClusters(c, color);
+      }
+    }
+  }
 }

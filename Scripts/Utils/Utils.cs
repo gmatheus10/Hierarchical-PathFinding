@@ -9,7 +9,6 @@ public static class Utils
     {
         return Camera.main.ScreenToWorldPoint( Input.mousePosition ) + new Vector3( 0, 0, 10 );
     }
-
     public static int ManhatamDistance (Cell a, Cell b)
     {
         int xDistance = Mathf.Abs( a.gridPosition.x - b.gridPosition.x );

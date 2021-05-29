@@ -43,11 +43,12 @@ public class Entrance
   {
     this.entranceTiles = entranceTiles;
     this.originPosition = entranceTiles[0].worldPosition;
+    this.endPosition = entranceTiles[entranceTiles.Count - 1].worldPosition;
   }
   public void FillSymmEntrance(List<Cell> symmTiles)
   {
     symmEntranceTiles = symmTiles;
-    this.endPosition = symmTiles[symmTiles.Count - 1].worldPosition;
+
   }
   public Cluster[] GetClusters(int level = 1)
   {
@@ -70,10 +71,7 @@ public class Entrance
   }
   public Cell GetSymmetricalCell(Cell Reference)
   {
-    //    get the index i from the reference
-    //return the symmList[i]
     int index = entranceTiles.IndexOf(Reference);
-
     try
     {
       Cell symmCell = symmEntranceTiles[index];

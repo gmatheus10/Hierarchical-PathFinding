@@ -54,7 +54,7 @@ public class Movement : MonoBehaviour
           //create a subtree under the level1 cluster path with the connection?
           foreach (Cluster cluster in subPath)
           {
-            HPA_Utils.DrawAllNodesInCluster(cluster);
+            HPA_Utils.DrawClusters(cluster, Color.red);
           }
 
         }
