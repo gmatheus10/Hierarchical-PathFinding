@@ -1,3 +1,4 @@
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -28,11 +29,11 @@ public class AbstractGraph : MonoBehaviour
   {
     grid = createGrid.grid;
     PreProcessing(Level);
-    DebugOnClick.PassMousePosition += DebugCluster;
+    //DebugOnClick.PassMousePosition += DebugCluster;
   }
   void DebugCluster(Vector3 position)
   {
-    int LEVEL = 3;
+    int LEVEL = 1;
 
     foreach (Cluster[,] level in allClustersAllLevels)
     {
@@ -46,6 +47,10 @@ public class AbstractGraph : MonoBehaviour
             if (cluster.IsPositionInside(position))
             {
               HPA_Utils.DrawClusterEntrances(cluster);
+              foreach (Node n in cluster.clusterNodes)
+              {
+                Debug.Log(n.worldPosition);
+              }
             }
           }
         }
@@ -447,9 +452,6 @@ public class AbstractGraph : MonoBehaviour
     }
     void UpdateEntrances(Cluster cluster, Cluster nextCluster, int level)
     {
-      //get the subCluster entrances that connects currentCluster with the nextCluster
-      //get the entranceTiles and merge in one list
-      //get the entranceNodes and merge in one list
 
       Entrance newEntrance = new Entrance();
       List<Entrance> merge = new List<Entrance>();
@@ -466,27 +468,25 @@ public class AbstractGraph : MonoBehaviour
       newEntrance = newEntrance.MergeEntrances(merge.ToArray());
       cluster.AddEntrance(newEntrance);
 
-
       UpdateNodes(cluster, nextCluster, level);
 
       void UpdateNodes(Cluster cluster, Cluster nextCluster, int level)
       {
-        //  Entrance entrance = cluster.entrances[0];
         foreach (var entrance in cluster.entrances)
         {
-          Node node = entrance.Value.entranceNodes[0];
-
-          if (!cluster.clusterNodes.Contains(node))
+          foreach (Node node in entrance.Value.entranceNodes)
           {
-            LevelUpNode(level, node);
-            cluster.AddNodeToCluster(node);
+            if (!cluster.clusterNodes.Contains(node))
+            {
+              LevelUpNode(level, node);
+              cluster.AddNodeToCluster(node);
+            }
+            if (!nextCluster.clusterNodes.Contains(node.pair))
+            {
+              LevelUpNode(level, node);
+              nextCluster.AddNodeToCluster(node.pair);
+            }
           }
-          if (!nextCluster.clusterNodes.Contains(node.pair))
-          {
-            LevelUpNode(level, node);
-            nextCluster.AddNodeToCluster(node.pair);
-          }
-
         }
         void LevelUpNode(int level, Node node)
         {
@@ -499,10 +499,6 @@ public class AbstractGraph : MonoBehaviour
               {
                 node.pair.level = level;
               }
-            }
-            if (node.pair != null)
-            {
-              //Debug.DrawLine( node.worldPosition, node.pair.worldPosition, Color.red, 10000f );
             }
           }
         }

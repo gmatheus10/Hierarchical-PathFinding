@@ -77,7 +77,7 @@ public static class HPA_Utils
     {
       for (int i = 1; i <= path.Count - 1; i++)
       {
-        Debug.DrawLine(path[i], path[i - 1], color, 15f);
+        Debug.DrawLine(path[i], path[i - 1], color, 15000f);
       }
     }
   }

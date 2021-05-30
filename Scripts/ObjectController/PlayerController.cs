@@ -4,58 +4,65 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    //this script sends the player position and mouse position, when clicked, as eventArg to whoever gets
-    //subscribed: Hierarchical_Pathfinding.cs
-    private CreateGrid createGrid;
-    public Grid<Cell> grid;
-    public class PlayerPositions
+  //this script sends the player position and mouse position, when clicked, as eventArg to whoever gets
+  //subscribed: Hierarchical_Pathfinding.cs
+  private CreateGrid createGrid;
+  public Grid<Cell> grid;
+  public class PlayerPositions
+  {
+    public Node startNode;
+    public Node endNode;
+    public PlayerPositions(Node startNode, Node endNode)
     {
-        public Vector3 currentPos;
-        public Vector3 destinationPos;
-        public PlayerPositions (Vector3 currentPos, Vector3 destinationPos)
-        {
-            this.currentPos = currentPos;
-            this.destinationPos = destinationPos;
-        }
+      this.startNode = startNode;
+      this.endNode = endNode;
     }
-    public delegate void SendPositions (object sender, PlayerPositions positions);
-    public event SendPositions OnPlayerDestinationSet;
-    private void Awake ( )
+  }
+  public delegate void SendPositions(object sender, PlayerPositions positions);
+  public event SendPositions OnPlayerDestinationSet;
+  private void Awake()
+  {
+    createGrid = GameObject.FindGameObjectWithTag("Grid").GetComponent<CreateGrid>();
+
+  }
+  private void Start()
+  {
+    grid = createGrid.grid;
+  }
+
+
+  private void Update()
+  {
+    SetNodes();
+  }
+
+  private void SetNodes()
+  {
+    if (Input.GetMouseButtonDown(0))
     {
-        createGrid = GameObject.FindGameObjectWithTag( "Grid" ).GetComponent<CreateGrid>();
+      Vector3 mousePosition = Utils.GetMousePosition();
+      Vector3 currentPos = GetGridWorldPosition(gameObject.transform.position);
+      Vector3 destinationPos = GetGridWorldPosition(mousePosition);
+      Node startNode = NewNode(currentPos);
+      Node endNode = NewNode(destinationPos);
+      PlayerPositions pos = new PlayerPositions(startNode, endNode);
 
+      OnPlayerDestinationSet?.Invoke(this, pos);
     }
-    private void Start ( )
+  }
+  private Node NewNode(Vector3 position)
+  {
+    Node n = new Node();
+    n.worldPosition = position + new Vector3(0.5f, 0.5f, 0);
+    return n;
+  }
+  private Vector3 GetGridWorldPosition(Vector3 position)
+  {
+    if (grid != null)
     {
-        grid = createGrid.grid;
+      Cell cell = grid.GetGridObject(position);
+      return cell.worldPosition;
     }
-
-
-    private void Update ( )
-    {
-        SetNodes();
-    }
-
-    private void SetNodes ( )
-    {
-        if (Input.GetMouseButtonDown( 0 ))
-        {
-            Vector3 mousePosition = Utils.GetMousePosition();
-            Vector3 currentPos = GetGridWorldPosition( gameObject.transform.position );
-            Vector3 destinationPos = GetGridWorldPosition( mousePosition );
-
-            PlayerPositions pos = new PlayerPositions( currentPos, destinationPos );
-
-            OnPlayerDestinationSet?.Invoke( this, pos );
-        }
-    }
-    private Vector3 GetGridWorldPosition (Vector3 position)
-    {
-        if (grid != null)
-        {
-            Cell cell = grid.GetGridObject( position );
-            return cell.worldPosition;
-        }
-        return new Vector3( -1, -1, -1 );
-    }
+    return new Vector3(-1, -1, -1);
+  }
 }

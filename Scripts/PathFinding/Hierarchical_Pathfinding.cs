@@ -1,5 +1,8 @@
-using System.Collections.Generic;
 using UnityEngine;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+
 
 public class Hierarchical_Pathfinding : MonoBehaviour
 {
@@ -7,8 +10,6 @@ public class Hierarchical_Pathfinding : MonoBehaviour
   // Give the path list to the Movement.cs
   private int MaxLevel;
   private AbstractGraph abstractGraph;
-  private Vector3 startPos;
-  private Vector3 goalPos;
   //Events publishers scripts
   private PlayerController playerController;
   private void Awake()
@@ -25,169 +26,57 @@ public class Hierarchical_Pathfinding : MonoBehaviour
   public event SendPathTree OnTreeBuilt;
   private void PlayerController_DestinationRecieved(object sender, PlayerController.PlayerPositions pos)
   {
-    startPos = pos.currentPos;
-    goalPos = pos.destinationPos;
-
-    List<Cluster> MaxLevelPath = HierarchicalSearch(startPos, goalPos, abstractGraph.Level);
-    HPA_Utils.ShowPathClusters(MaxLevelPath, Color.blue);
-    var pathTree = BuildPathTree(MaxLevelPath);
-    if (pathTree != null)
-    {
-      OnTreeBuilt?.Invoke(this, pathTree);
-    }
-
+    List<Cluster> MaxLevelPath = HierarchicalSearch(pos.startNode, pos.endNode, abstractGraph.Level);
+    HPA_Utils.ShowPathClusters(MaxLevelPath, Color.yellow);
+    HPA_Utils.ShowPathLines(MaxLevelPath, Color.red);
   }
 
-  private List<Cluster> HierarchicalSearch(Vector3 start, Vector3 end, int level)
+  private List<Cluster> HierarchicalSearch(Node start, Node end, int level)
   {
-    List<Cluster> abstractPath = SearchForPath(startPos, goalPos, level);
+    InsertNode(start, level);
+    InsertNode(end, level);
+    Cluster startCluster = GetCluster(start.worldPosition, level);
+    Cluster endCluster = GetCluster(end.worldPosition, level);
+    List<Cluster> abstractPath = SearchForPath(startCluster, endCluster);
 
     return abstractPath;
   }
-
-  private TreeData<List<Cluster>> BuildPathTree(List<Cluster> MaxLevelPath)
+  private void InsertNode(Node node, int maxLevel)
   {
-    TreeData<List<Cluster>> pathTree = new TreeData<List<Cluster>>(MaxLevel, 0, MaxLevelPath);
-
-    Vector3 startPosition = startPos;
-    NavigatingOnTree(MaxLevelPath, pathTree);
-    return pathTree;
-    void NavigatingOnTree(List<Cluster> path, TreeData<List<Cluster>> tree)
+    for (int i = 1; i <= maxLevel; i++)
     {
-      Vector3 navStart = Vector3.zero;
+      Cluster c = GetCluster(node.worldPosition, maxLevel);
+      ConnectToBorder(node, c);
+    }
+    node.level = maxLevel;
 
-      for (int i = 1; i <= path.Count; i++)
+
+    void ConnectToBorder(Node node, Cluster cluster)
+    {
+      int level = cluster.level;
+      foreach (Node n in cluster.clusterNodes)
       {
-        Cluster currentCluster = path[i - 1];
-        int lesserLevel = currentCluster.level - 1;
-
-        if (lesserLevel >= 1)
+        if (node.level < level)
         {
-          try
-          {
-            Cluster nextCluster = path[i];
-
-            List<Cluster> lesserPath = NavigateInsideCluster(currentCluster, nextCluster, ref navStart, lesserLevel);
-            AddTreeAndContinue(pathTree, i, lesserLevel, lesserPath);
-          }
-          catch (System.Exception)
-          {
-
-            List<Cluster> lesserPath = NavigateInsideCluster(currentCluster, null, ref navStart, lesserLevel);
-            AddTreeAndContinue(pathTree, i, lesserLevel, lesserPath);
-          }
-
+          continue;
         }
+        //this distance will be used later!!
+        float distance = (node.worldPosition - n.worldPosition).magnitude;
       }
 
-      List<Cluster> NavigateInsideCluster(Cluster currentCluster, Cluster nextCluster, ref Vector3 navStart, int lesserLevel)
-      {
-        Vector3 endPosition = currentCluster.originPosition + new Vector3(currentCluster.size.x - 0.5f, currentCluster.size.y - 0.5f);
-        Vector3 newStart = navStart;
-        if (isPositionInSubcluster(currentCluster, goalPos))
-        {
-          endPosition = goalPos;
-        }
-        else
-        {
-          GetClosestExit(currentCluster, nextCluster, ref navStart, ref endPosition);
-        }
-
-        if (!isPositionInSubcluster(currentCluster, startPos))
-        {
-          startPosition = newStart;
-        }
-        HPA_Utils.DrawCrossInPosition(startPosition, Color.red);
-
-        List<Cluster> lesserPath = SearchForPath(startPosition, endPosition, lesserLevel, currentCluster);
-
-        return lesserPath;
-        bool isPositionInSubcluster(Cluster currentCluster, Vector3 position)
-        {
-          foreach (var c in currentCluster.lesserLevelClusters)
-          {
-            if (c.IsPositionInside(position))
-            {
-              return true;
-            }
-
-          }
-
-          return false;
-        }
-        void GetClosestExit(Cluster currentCluster, Cluster nextCluster, ref Vector3 navStart, ref Vector3 endPosition)
-        {
-          float min = Mathf.Infinity;
-          foreach (Node n in currentCluster.clusterNodes)
-          {
-            float distance = (n.worldPosition - startPos).magnitude;
-            if (distance < min)
-            {
-              if (nextCluster.IsPositionInside(n.pair.worldPosition))
-              {
-                foreach (Cluster sub in currentCluster.lesserLevelClusters)
-                {
-                  if (sub.IsPositionInside(n.worldPosition) && !sub.IsPositionInside(startPos))
-                  {
-                    Cluster startCluster = GetCluster(startPos, sub.level);
-                    if (!isBlocked(startCluster, sub))
-                    {
-                      endPosition = n.worldPosition;
-                      navStart = n.pair.worldPosition;
-                      min = distance;
-                    }
-                  }
-                  else if (sub.IsPositionInside(n.worldPosition) && sub.IsPositionInside(startPos))
-                  {
-                    endPosition = n.worldPosition;
-                    navStart = n.pair.worldPosition;
-                    min = distance;
-                  }
-                }
-              }
-            }
-          }
-          bool isBlocked(Cluster currentCluster, Cluster neighbour)
-          {
-            string key = $"{currentCluster.originPosition}->{neighbour.originPosition}";
-            if (abstractGraph.setOfEntrances.ContainsKey(key))
-            {
-              Entrance entrance = abstractGraph.setOfEntrances[key];
-              if (entrance.isBlocked)
-              {
-                return true;
-              }
-              return false;
-            }
-            return false;
-          }
-        }
-      }
-
-      void AddTreeAndContinue(TreeData<List<Cluster>> pathTree, int i, int lesserLevel, List<Cluster> lesserPath)
-      {
-        if (lesserPath != null)
-        {
-          HPA_Utils.ShowPathClusters(lesserPath, Color.Lerp(Color.yellow, Color.red, 1 / lesserLevel));
-          HPA_Utils.ShowPathLines(lesserPath, Color.red);
-          TreeData<List<Cluster>> lesserTree = new TreeData<List<Cluster>>(lesserLevel, i - 1, lesserPath);
-          tree.Add(lesserTree);
-          NavigatingOnTree(lesserPath, lesserTree);
-        }
-      }
     }
   }
 
 
+
   //Helpers
-  private List<Cluster> SearchForPath(Vector3 start, Vector3 end, int Level, Cluster parent = null)
+  private List<Cluster> SearchForPath(Cluster startCluster, Cluster endCluster)
   {
+    int Level = startCluster.level;
     SortedList<float, Cluster> openList = new SortedList<float, Cluster>();
     List<Cluster> closedList = new List<Cluster>();
     ScanGridAndSetDefault(Level);
 
-    Cluster startCluster = GetCluster(start, Level);
-    Cluster endCluster = GetCluster(end, Level);
 
     startCluster.gCost = 0;
     startCluster.hCost = Utils.ManhatamDistance(startCluster, endCluster);
@@ -204,7 +93,7 @@ public class Hierarchical_Pathfinding : MonoBehaviour
       }
       openList.RemoveAt(0);
       closedList.Add(currentCluster);
-      List<Cluster> neighbourList = GetNeighboursList(currentCluster, Level, parent);
+      List<Cluster> neighbourList = GetNeighboursList(currentCluster, Level);
 
       foreach (Cluster neighbour in neighbourList)
       {
@@ -223,18 +112,16 @@ public class Hierarchical_Pathfinding : MonoBehaviour
 
           if (!openList.Values.Contains(neighbour))
           {
+            neighbour.cameFrom = currentCluster;
+            string key = $"{neighbour.originPosition}->{currentCluster.originPosition}";
+
+            if (isEntranceBlocked(neighbour, key))
+            {
+              continue;
+            }
+
             try
             {
-              neighbour.cameFrom = currentCluster;
-              string key = $"{neighbour.originPosition}->{currentCluster.originPosition}";
-              if (neighbour.entrances.ContainsKey(key))
-              {
-                if (neighbour.entrances[key].isBlocked)
-                {
-                  continue;
-                }
-              }
-              //if is on level 1 check if it cluster.cameFrom.entrance has an entrance to current cluster. If not, then continue
               openList.Add(neighbour.FCost, neighbour);
             }
             catch (System.Exception)
@@ -243,15 +130,15 @@ public class Hierarchical_Pathfinding : MonoBehaviour
               {
                 if (openList.ContainsKey(neighbour.FCost))
                 {
-                  Cluster pair = openList[neighbour.FCost];
-                  if (pair.gCost <= neighbour.gCost)
+                  Cluster insideOpenList = openList[neighbour.FCost];
+
+                  if (isInsiderIsCloser(insideOpenList, neighbour))
                   {
                     continue;
                   }
                   else
                   {
-                    openList.Remove(neighbour.FCost);
-                    openList.Add(neighbour.FCost, neighbour);
+                    ReplaceInsiderWith(neighbour);
                   }
                 }
               }
@@ -260,8 +147,35 @@ public class Hierarchical_Pathfinding : MonoBehaviour
         }
       }
     }
-    Debug.Log("Didn't find it");
+    Debug.Log($"Didn't find it - start cluster: {startCluster.originPosition}");
+    HPA_Utils.DrawClusterBorders(startCluster);
+    HPA_Utils.DrawClusterBorders(endCluster);
     return null;
+
+    bool isEntranceBlocked(Cluster neighbour, string key)
+    {
+      if (neighbour.entrances.ContainsKey(key))
+      {
+        if (neighbour.entrances[key].isBlocked)
+        {
+          return true;
+        }
+      }
+      return false;
+    }
+    bool isInsiderIsCloser(Cluster insider, Cluster neighbour)
+    {
+      if (insider.gCost <= neighbour.gCost)
+      {
+        return true;
+      }
+      return false;
+    }
+    void ReplaceInsiderWith(Cluster neighbour)
+    {
+      openList.Remove(neighbour.FCost);
+      openList.Add(neighbour.FCost, neighbour);
+    }
   }
   private List<Cluster> CalculatePath(Cluster endCluster)
   {
