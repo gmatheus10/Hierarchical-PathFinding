@@ -18,7 +18,7 @@ public class Movement : MonoBehaviour
   }
   private void Start()
   {
-    hpa.OnTreeBuilt += TreeRecieved;
+    //hpa.OnTreeBuilt += TreeRecieved;
   }
   private void TreeRecieved(object sender, TreeData<List<Cluster>> data)
   {

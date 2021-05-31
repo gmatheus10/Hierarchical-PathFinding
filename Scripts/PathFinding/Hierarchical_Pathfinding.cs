@@ -1,270 +1,246 @@
 using UnityEngine;
 using System;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 
 
 public class Hierarchical_Pathfinding : MonoBehaviour
 {
-  //Recieves the Node from PlayerController and converts into a path list
-  // Give the path list to the Movement.cs
-  private int MaxLevel;
-  private AbstractGraph abstractGraph;
-  //Events publishers scripts
-  private PlayerController playerController;
-  private void Awake()
-  {
-    abstractGraph = GameObject.FindGameObjectWithTag("Grid").GetComponent<AbstractGraph>();
-    playerController = gameObject.GetComponent<PlayerController>();
-  }
-  private void Start()
-  {
-    playerController.OnPlayerDestinationSet += PlayerController_DestinationRecieved;
-    MaxLevel = abstractGraph.Level;
-  }
-  public delegate void SendPathTree(object sender, TreeData<List<Cluster>> tree);
-  public event SendPathTree OnTreeBuilt;
-  private void PlayerController_DestinationRecieved(object sender, PlayerController.PlayerPositions pos)
-  {
-    List<Cluster> MaxLevelPath = HierarchicalSearch(pos.startNode, pos.endNode, abstractGraph.Level);
-    HPA_Utils.ShowPathClusters(MaxLevelPath, Color.yellow);
-    HPA_Utils.ShowPathLines(MaxLevelPath, Color.red);
-  }
-
-  private List<Cluster> HierarchicalSearch(Node start, Node end, int level)
-  {
-    InsertNode(start, level);
-    InsertNode(end, level);
-    Cluster startCluster = GetCluster(start.worldPosition, level);
-    Cluster endCluster = GetCluster(end.worldPosition, level);
-    List<Cluster> abstractPath = SearchForPath(startCluster, endCluster);
-
-    return abstractPath;
-  }
-  private void InsertNode(Node node, int maxLevel)
-  {
-    for (int i = 1; i <= maxLevel; i++)
+    //Recieves the Node from PlayerController and converts into a path list
+    // Give the path list to the Movement.cs
+    private int MaxLevel;
+    private AbstractGraph abstractGraph;
+    //Events publishers scripts
+    private PlayerController playerController;
+    private void Awake ( )
     {
-      Cluster c = GetCluster(node.worldPosition, maxLevel);
-      ConnectToBorder(node, c);
+        abstractGraph = GameObject.FindGameObjectWithTag( "Grid" ).GetComponent<AbstractGraph>();
+        playerController = gameObject.GetComponent<PlayerController>();
     }
-    node.level = maxLevel;
-
-
-    void ConnectToBorder(Node node, Cluster cluster)
+    private void Start ( )
     {
-      int level = cluster.level;
-      foreach (Node n in cluster.clusterNodes)
-      {
-        if (node.level < level)
-        {
-          continue;
-        }
-        //this distance will be used later!!
-        float distance = (node.worldPosition - n.worldPosition).magnitude;
-      }
-
+        playerController.OnPlayerDestinationSet += PlayerController_DestinationRecieved;
+        MaxLevel = abstractGraph.Level;
     }
-  }
-
-
-
-  //Helpers
-  private List<Cluster> SearchForPath(Cluster startCluster, Cluster endCluster)
-  {
-    int Level = startCluster.level;
-    SortedList<float, Cluster> openList = new SortedList<float, Cluster>();
-    List<Cluster> closedList = new List<Cluster>();
-    ScanGridAndSetDefault(Level);
-
-
-    startCluster.gCost = 0;
-    startCluster.hCost = Utils.ManhatamDistance(startCluster, endCluster);
-
-    startCluster.SetFCost();
-
-    openList.Add(startCluster.FCost, startCluster);
-    while (openList.Count > 0)
+    private void PlayerController_DestinationRecieved (object sender, PlayerController.PlayerPositions pos)
     {
-      Cluster currentCluster = openList.Values[0];
-      if (currentCluster == endCluster)
-      {
-        return CalculatePath(currentCluster);
-      }
-      openList.RemoveAt(0);
-      closedList.Add(currentCluster);
-      List<Cluster> neighbourList = GetNeighboursList(currentCluster, Level);
+        List<Node> MaxLevelPath = HierarchicalSearch( pos.startNode, pos.endNode, abstractGraph.Level );
+        HPA_Utils.ShowPathLines( MaxLevelPath, Color.red );
+    }
 
-      foreach (Cluster neighbour in neighbourList)
-      {
-        float newG = currentCluster.gCost + Utils.ManhatamDistance(neighbour, currentCluster);
-        if (neighbour == endCluster)
+
+    private List<Node> HierarchicalSearch (Node start, Node end, int level)
+    {
+        InsertNode( start, level );
+        InsertNode( end, level );
+        List<Node> abstractPath = SearchForPath( start, end );
+        //  RefinePath( abstractPath, level );
+        return abstractPath;
+
+        void InsertNode (Node node, int maxLevel)
         {
-          neighbour.cameFrom = currentCluster;
-          return CalculatePath(neighbour);
-        }
-
-        if (newG < neighbour.gCost)
-        {
-          neighbour.gCost = newG;
-          neighbour.hCost = Utils.ManhatamDistance(neighbour, endCluster);
-          neighbour.SetFCost();
-
-          if (!openList.Values.Contains(neighbour))
-          {
-            neighbour.cameFrom = currentCluster;
-            string key = $"{neighbour.originPosition}->{currentCluster.originPosition}";
-
-            if (isEntranceBlocked(neighbour, key))
+            node.level = maxLevel;
+            for (int i = 1; i <= maxLevel; i++)
             {
-              continue;
+                Cluster c = GetCluster( node.WorldPosition, maxLevel );
+                node.cluster = c;
+                ConnectToBorder( node, c );
             }
 
-            try
+
+
+            void ConnectToBorder (Node node, Cluster cluster)
             {
-              openList.Add(neighbour.FCost, neighbour);
-            }
-            catch (System.Exception)
-            {
-              if (!closedList.Contains(neighbour))
-              {
-                if (openList.ContainsKey(neighbour.FCost))
+                int level = cluster.level;
+                foreach (Node n in cluster.clusterNodes)
                 {
-                  Cluster insideOpenList = openList[neighbour.FCost];
+                    if (n.level < level)
+                    {
+                        continue;
+                    }
+                    int distance = Utils.ManhatamDistance( node.GridPosition, n.GridPosition );
+                    node.AddNeighbour( n, distance );
+                    n.AddNeighbour( node, distance );
 
-                  if (isInsiderIsCloser(insideOpenList, neighbour))
-                  {
-                    continue;
-                  }
-                  else
-                  {
-                    ReplaceInsiderWith(neighbour);
-                  }
+                    n.neighbours = n.neighbours.OrderBy( e => e.Key ).ToList();
+
                 }
-              }
+                node.neighbours = node.neighbours.OrderBy( e => e.Key ).ToList();
+                cluster.AddNodeToCluster( node );
             }
-          }
         }
-      }
     }
-    Debug.Log($"Didn't find it - start cluster: {startCluster.originPosition}");
-    HPA_Utils.DrawClusterBorders(startCluster);
-    HPA_Utils.DrawClusterBorders(endCluster);
-    return null;
-
-    bool isEntranceBlocked(Cluster neighbour, string key)
+    private void RefinePath (List<Cluster> AbstractPath, int level)
     {
-      if (neighbour.entrances.ContainsKey(key))
-      {
-        if (neighbour.entrances[key].isBlocked)
+        //need to do this.
+        for (int i = level - 1; i >= 1; i--)
         {
-          return true;
+
         }
-      }
-      return false;
-    }
-    bool isInsiderIsCloser(Cluster insider, Cluster neighbour)
-    {
-      if (insider.gCost <= neighbour.gCost)
-      {
-        return true;
-      }
-      return false;
-    }
-    void ReplaceInsiderWith(Cluster neighbour)
-    {
-      openList.Remove(neighbour.FCost);
-      openList.Add(neighbour.FCost, neighbour);
-    }
-  }
-  private List<Cluster> CalculatePath(Cluster endCluster)
-  {
-    List<Cluster> path = new List<Cluster>() { endCluster };
+        //void Tree (List<Cluster> path, int level)
+        //{
+        //    if (level != 1)
+        //    {
+        //        foreach (Cluster c in path)
+        //        {
 
-    Cluster queue = endCluster;
-    while (queue.cameFrom != null)
-    {
-      path.Add(queue.cameFrom);
-      queue = queue.cameFrom;
+        //        }
+        //    }
+        //}
     }
-    path.Reverse();
-    return path;
-  }
-  private Cluster GetCluster(Vector3 position, int Level)
-  {
-    List<Cluster[,]> allClusters = abstractGraph.allClustersAllLevels;
-    foreach (Cluster[,] setOfClusters in allClusters)
+    //Helpers
+    private List<Node> SearchForPath (Node startNode, Node endNode)
     {
-      for (int i = 0; i < setOfClusters.GetLength(0); i++)
-      {
-        for (int j = 0; j < setOfClusters.GetLength(1); j++)
+        int Level = startNode.level;
+        SortedList<float, Node> openList = new SortedList<float, Node>();
+        List<Node> closedList = new List<Node>();
+        ScanGridAndSetDefault( Level );
+
+
+        startNode.gCost = 0;
+        startNode.hCost = Utils.NodeDistance( startNode, endNode );
+
+        startNode.SetFCost();
+
+        openList.Add( startNode.FCost, startNode );
+        while (openList.Count > 0)
         {
-          Cluster current = setOfClusters[i, j];
-          if (current.IsPositionInside(position))
-          {
-            if (current.level == Level)
+            Node currentNode = openList.Values[0];
+            if (currentNode == endNode)
             {
-              return current;
+                return CalculatePath( currentNode );
             }
-          }
-        }
-      }
-    }
-    return null;
-  }
-  private List<Cluster> GetNeighboursList(Cluster current, int Level, Cluster parent = null)
-  {
-    Vector3 center = current.originPosition + new Vector3(0.5f * current.size.x, 0.5f * current.size.y, 0);
-    List<Cluster> neighbours = new List<Cluster>();
+            openList.RemoveAt( 0 );
+            closedList.Add( currentNode );
 
-    for (int i = -1; i <= 1; i++)
+            HPA_Utils.DrawCrossInPosition( currentNode.WorldPosition, Color.red );
+
+            foreach (var pair in currentNode.neighbours)
+            {
+                Node neighbour = pair.Value;
+                float newG = currentNode.gCost + Utils.NodeDistance( neighbour, currentNode );
+                if (neighbour == endNode)
+                {
+                    neighbour.SetParent( currentNode );
+                    return CalculatePath( endNode );
+                }
+
+                if (newG < neighbour.gCost)
+                {
+                    neighbour.gCost = newG;
+                    neighbour.hCost = Utils.NodeDistance( neighbour, endNode );
+                    neighbour.SetFCost();
+
+                    if (!openList.Values.Contains( neighbour ))
+                    {
+                        neighbour.SetParent( currentNode );
+                        try
+                        {
+                            openList.Add( neighbour.FCost, neighbour );
+                            HPA_Utils.DrawCrossInPosition( neighbour.WorldPosition, Color.blue );
+                        }
+                        catch (System.Exception)
+                        {
+                            if (!closedList.Contains( neighbour ))
+                            {
+                                if (openList.ContainsKey( neighbour.FCost ))
+                                {
+                                    Node insideOpenList = openList[neighbour.FCost];
+
+                                    if (isInsiderCloser( insideOpenList, neighbour ))
+                                    {
+                                        HPA_Utils.DrawCrossInPosition( neighbour.WorldPosition, Color.black );
+                                        continue;
+                                    }
+                                    else
+                                    {
+                                        ReplaceInsiderWith( neighbour );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Debug.Log( $"Didn't find it - start cluster: {startNode.WorldPosition}" );
+
+        return null;
+
+        bool isInsiderCloser (Node insider, Node neighbour)
+        {
+            if (insider.gCost <= neighbour.gCost)
+            {
+                return true;
+            }
+            return false;
+        }
+        void ReplaceInsiderWith (Node neighbour)
+        {
+            openList.Remove( neighbour.FCost );
+            openList.Add( neighbour.FCost, neighbour );
+        }
+    }
+    private List<Node> CalculatePath (Node endNode)
     {
-      for (int j = -1; j <= 1; j++)
-      {
-        if ((i == 0 && j == 0) || (i == 1 && j == 1) || (i == -1 && j == -1) || (i == -1 && j == 1) || (i == 1 && j == -1))
-        {
-          continue;
-        }
-        Vector3 neighbourPosition = center + new Vector3(i * current.size.x, j * current.size.y);
-        if (parent != null)
-        {
-          if (!parent.IsPositionInside(neighbourPosition))
-          {
-            continue;
-          }
-        }
+        List<Node> path = new List<Node>() { endNode };
 
-        Cluster neighbour = GetCluster(neighbourPosition, Level);
-        if (neighbour != null)
+        Node queue = endNode;
+        while (queue.Parent != null)
         {
-          neighbours.Add(neighbour);
+            path.Add( queue.Parent );
+            queue = queue.Parent;
         }
-
-      }
+        path.Reverse();
+        return path;
     }
-    return neighbours;
-
-  }
-  private void ScanGridAndSetDefault(int Level)
-  {
-    List<Cluster[,]> allClusters = abstractGraph.allClustersAllLevels;
-
-    foreach (Cluster[,] setOfClusters in allClusters)
+    private Cluster GetCluster (Vector3 position, int Level)
     {
-      for (int i = 0; i < setOfClusters.GetLength(0); i++)
-      {
-        for (int j = 0; j < setOfClusters.GetLength(1); j++)
+        List<Cluster[,]> allClusters = abstractGraph.allClustersAllLevels;
+        foreach (Cluster[,] setOfClusters in allClusters)
         {
-          Cluster current = setOfClusters[i, j];
-          if (current.level == Level)
-          {
-            current.gCost = Mathf.Infinity;
-            current.SetFCost();
-            current.cameFrom = null;
-          }
+            for (int i = 0; i < setOfClusters.GetLength( 0 ); i++)
+            {
+                for (int j = 0; j < setOfClusters.GetLength( 1 ); j++)
+                {
+                    Cluster current = setOfClusters[i, j];
+                    if (current.IsPositionInside( position ))
+                    {
+                        if (current.level == Level)
+                        {
+                            return current;
+                        }
+                    }
+                }
+            }
         }
-      }
+        return null;
     }
-  }
+    private void ScanGridAndSetDefault (int Level)
+    {
+        List<Cluster[,]> allClusters = abstractGraph.allClustersAllLevels;
+
+        foreach (Cluster[,] setOfClusters in allClusters)
+        {
+            for (int i = 0; i < setOfClusters.GetLength( 0 ); i++)
+            {
+                for (int j = 0; j < setOfClusters.GetLength( 1 ); j++)
+                {
+                    Cluster current = setOfClusters[i, j];
+                    if (current.level == Level)
+                    {
+                        for (int m = 0; m < current.clusterNodes.Count - 1; m++)
+                        {
+                            Node node = current.clusterNodes[m];
+                            node.gCost = Mathf.Infinity;
+                            node.SetFCost();
+                            node.SetParent( null );
+                        }
+                    }
+                }
+            }
+        }
+    }
 
 }

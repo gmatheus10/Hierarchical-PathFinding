@@ -9,17 +9,26 @@ public static class Utils
     {
         return Camera.main.ScreenToWorldPoint( Input.mousePosition ) + new Vector3( 0, 0, 10 );
     }
-    public static int ManhatamDistance (Cell a, Cell b)
+
+    public static float NodeDistance (Node a, Node b)
     {
-        int xDistance = Mathf.Abs( a.gridPosition.x - b.gridPosition.x );
-        int yDistance = Mathf.Abs( a.gridPosition.y - b.gridPosition.y );
+        return ( a.WorldPosition - b.WorldPosition ).magnitude;
+    }
+    public static int ManhatamDistance (Vector3Int a, Vector3Int b)
+    {
+        int xDistance = Mathf.Abs( a.x - b.x );
+        int yDistance = Mathf.Abs( a.y - b.y );
         int remaining = Mathf.Abs( xDistance - yDistance );
         return Mathf.RoundToInt( MOVE_DIAGONAL_COST * Mathf.Min( xDistance, yDistance ) + MOVE_STRAIGHT_COST * remaining );
     }
+    public static int ManhatamDistance (Cell a, Cell b)
+    {
+        return ManhatamDistance( a.gridPosition, b.gridPosition );
+    }
     public static int ManhatamDistance (Cluster a, Cluster b)
     {
-        float xDistance = Mathf.Abs( a.originPosition.x - b.originPosition.x );
-        float yDistance = Mathf.Abs( a.originPosition.y - b.originPosition.y );
+        float xDistance = Mathf.Abs( a.OriginPosition.x - b.OriginPosition.x );
+        float yDistance = Mathf.Abs( a.OriginPosition.y - b.OriginPosition.y );
         return Mathf.RoundToInt( xDistance + yDistance );
     }
 }

@@ -6,7 +6,7 @@ using UnityEngine;
 public class Cluster
 {
     public Vector2Int size;
-    public Vector3 originPosition { get; private set; }
+    public Vector3 OriginPosition { get; private set; }
     public Vector3Int GridPosition { get; private set; }
 
     public float gCost;
@@ -20,10 +20,10 @@ public class Cluster
     public int level;
 
     public List<Cluster> lesserLevelClusters = new List<Cluster>();
-    public Grid<Cell> clusterGrid;
+    public Grid<Cell> clusterGrid { get; private set; }
     public Cluster (Vector2Int size, Vector3 originPosition, int level = 1)
     {
-        this.originPosition = originPosition;
+        this.OriginPosition = originPosition;
         this.level = level;
         this.size = size;
     }
@@ -33,12 +33,12 @@ public class Cluster
     }
     public void AddEntrance (Entrance entrance)
     {
-        string key1 = $"{entrance.cluster1.originPosition}->{entrance.cluster2.originPosition}";
+        string key1 = $"{entrance.Cluster1.OriginPosition}->{entrance.Cluster2.OriginPosition}";
         entrances.Add( key1, entrance );
     }
     public void AddNodeToCluster (Node node)
     {
-        if (this.IsPositionInside( node.worldPosition ))
+        if (this.IsPositionInside( node.WorldPosition ))
         {
             if (!clusterNodes.Contains( node ))
             {
@@ -50,7 +50,7 @@ public class Cluster
     }
     public bool IsPositionInside (Vector3 position)
     {
-        Vector3 thisStart = this.originPosition;
+        Vector3 thisStart = this.OriginPosition;
         Vector3 thisEnd = thisStart + new Vector3( this.size.x, this.size.y, 0 );
 
 
@@ -64,8 +64,8 @@ public class Cluster
     }
     private bool IsClusterInside (Cluster cluster)
     {
-        bool isStartinside = this.IsPositionInside( cluster.originPosition );
-        bool isEndinside = this.IsPositionInside( cluster.originPosition + new Vector3( cluster.size.x, cluster.size.y, 0 ) );
+        bool isStartinside = this.IsPositionInside( cluster.OriginPosition );
+        bool isEndinside = this.IsPositionInside( cluster.OriginPosition + new Vector3( cluster.size.x, cluster.size.y, 0 ) );
 
         return isStartinside && isEndinside;
     }
@@ -108,7 +108,7 @@ public class Cluster
 
         //sort them on the array
     }
-    public void AddGrid (Grid<Cell> clusterGrid)
+    public void SetGrid (Grid<Cell> clusterGrid)
     {
         this.clusterGrid = clusterGrid;
     }
