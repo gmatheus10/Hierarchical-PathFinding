@@ -41,30 +41,34 @@ public class PlayerController : MonoBehaviour
         if (Input.GetMouseButtonDown( 0 ))
         {
             Vector3 mousePosition = Utils.GetMousePosition();
-            Vector3 currentPos = GetGridWorldPosition( gameObject.transform.position );
-            Vector3 destinationPos = GetGridWorldPosition( mousePosition );
-            Node startNode = NewNode( currentPos );
-            Node endNode = NewNode( destinationPos );
+
+            Node startNode = PositionToNode( gameObject.transform.position );
+            Node endNode = PositionToNode( mousePosition );
+
             PlayerPositions pos = new PlayerPositions( startNode, endNode );
 
             OnPlayerDestinationSet?.Invoke( this, pos );
-            HPA_Utils.DrawCrossInPosition( currentPos, Color.green );
-            HPA_Utils.DrawCrossInPosition( destinationPos, Color.green );
+
+            // HPA_Utils.DrawCrossInPosition( startNode.WorldPosition, Color.green );
+            // HPA_Utils.DrawCrossInPosition( endNode.WorldPosition, Color.green );
         }
+    }
+
+    private Node PositionToNode (Vector3 position)
+    {
+        if (grid != null)
+        {
+            Cell cell = grid.GetGridObject( position );
+            Node n = NewNode( cell.worldPosition );
+            n.SetGridPosition( cell.gridPosition );
+            return n;
+        }
+        return null;
     }
     private Node NewNode (Vector3 position)
     {
         Node n = new Node();
         n.SetPosition( position );
         return n;
-    }
-    private Vector3 GetGridWorldPosition (Vector3 position)
-    {
-        if (grid != null)
-        {
-            Cell cell = grid.GetGridObject( position );
-            return cell.worldPosition;
-        }
-        return new Vector3( -1, -1, -1 );
     }
 }

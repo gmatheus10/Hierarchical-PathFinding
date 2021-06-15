@@ -42,14 +42,28 @@ public class AbstractGraph : MonoBehaviour
                 for (int j = 0; j < level.GetLength( 1 ); j++)
                 {
                     Cluster cluster = level[i, j];
-                    if (cluster.level == LEVEL)
-                    {
-                        if (cluster.IsPositionInside( position ))
-                        {
-                            HPA_Utils.DrawNodesInCluster( cluster );
 
+                    if (cluster.IsPositionInside( position ))
+                    {
+
+                        foreach (Node n in cluster.clusterNodes)
+                        {
+                            if (n.level == 1)
+                            {
+                                HPA_Utils.DrawCrossInPosition( n.WorldPosition, Color.blue );
+                            }
+                            if (n.level == 2)
+                            {
+                                HPA_Utils.DrawCrossInPosition( n.WorldPosition, Color.yellow );
+                            }
+                            if (n.level == 3)
+                            {
+                                HPA_Utils.DrawCrossInPosition( n.WorldPosition, Color.green );
+                            }
                         }
+
                     }
+
                 }
             }
         }
@@ -373,6 +387,9 @@ public class AbstractGraph : MonoBehaviour
                     c1Node.SetPair( c2Node );
                     c2Node.SetPair( c1Node );
 
+                    c1Node.level = 1;
+                    c2Node.level = 1;
+
                     AddNode( entrance, c1Node, 1 );
 
                     c1.AddNodeToCluster( c1Node );
@@ -499,12 +516,16 @@ public class AbstractGraph : MonoBehaviour
 
                     void AddLeveledNode (Cluster cluster, Node node)
                     {
-                        Node newNode = new Node( cluster );
-                        newNode.SetPosition( node.WorldPosition );
-                        newNode.SetGridPosition( node.GridPosition );
-                        newNode.SetPair( node.Pair );
-                        newNode.level = cluster.level;
-                        cluster.AddNodeToCluster( newNode );
+
+                        node.level = cluster.level;
+                        node.cluster = cluster;
+                        cluster.AddNodeToCluster( node );
+                        //Node newNode = new Node( cluster );
+                        //newNode.SetPosition( node.WorldPosition );
+                        //newNode.SetGridPosition( node.GridPosition );
+                        //newNode.SetPair( node.Pair );
+                        //newNode.level = cluster.level;
+                        //cluster.AddNodeToCluster( newNode );
                     }
                 }
             }
@@ -520,8 +541,7 @@ public class AbstractGraph : MonoBehaviour
             {
                 if (m == n) { continue; }
                 Node n2 = nodes[n];
-                int distance = Utils.ManhatamDistance( n1.GridPosition, n2.GridPosition );
-                n1.AddNeighbour( n2, distance );
+                n1.AddNeighbour( n2 );
             }
         }
 

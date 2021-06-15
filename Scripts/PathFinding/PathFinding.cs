@@ -4,10 +4,6 @@ using UnityEngine;
 
 public class PathFinding
 {
-    //NEED TO BE GENERIC! 
-    //NO IT DOES NOT! yes it does... LATER!
-
-
     private Grid<Cell> grid;
     private List<Cell> openList;
     private List<Cell> closedList;
@@ -62,88 +58,83 @@ public class PathFinding
         }
         // out of node on the open list
         return null;
-    }
-
-    private void ScanGridAndSetDefault ( )
-    {
-        for (int x = 0; x < grid.Width; x++)
+        void ScanGridAndSetDefault ( )
         {
-            for (int y = 0; y < grid.Height; y++)
+            for (int x = 0; x < grid.Width; x++)
             {
-                Cell cell = grid.GetGridObject( new Vector3Int( x, y, 0 ) );
-                SetDefaultCell( cell );
-            }
-        }
-    }
-
-    private static void SetDefaultCell (Cell cell)
-    {
-        cell.gCost = int.MaxValue;
-        cell.CalculateF();
-        cell.cameFromNode = null;
-    }
-    private Cell GetLowestFCostNode (List<Cell> pathNodeList)
-    {
-        Cell lowestFCostNode = pathNodeList[0];
-        foreach (var node in pathNodeList)
-        {
-            if (node.FCost < lowestFCostNode.FCost)
-            {
-                lowestFCostNode = node;
-            }
-        }
-        return lowestFCostNode;
-    }
-    private List<Cell> CalculatePath (Cell endNode)
-    {
-        List<Cell> path = new List<Cell>();
-        path.Add( endNode );
-        Cell queue = endNode;
-        while (queue.cameFromNode != null)
-        {
-            path.Add( queue.cameFromNode );
-            queue = queue.cameFromNode;
-        }
-        path.Reverse();
-        return path;
-    }
-    private void ScanNeighboursForBetterPath (Cell endNode, Cell currentNode)
-    {
-        foreach (Cell neighbour in GetNeighboursList( currentNode ))
-        {
-            //ignore already scanned cells
-            if (closedList.Contains( neighbour ))
-            {
-                continue;
+                for (int y = 0; y < grid.Height; y++)
+                {
+                    Cell cell = grid.GetGridObject( new Vector3Int( x, y, 0 ) );
+                    SetDefaultCell( cell );
+                }
             }
 
-            // int tentativeGCost = currentNode.gCost + CalculateManhatamDistance( currentNode, neighbour );
-            int tentativeGCost = currentNode.gCost + Utils.ManhatamDistance( currentNode, neighbour );
-
-            if (tentativeGCost < neighbour.gCost)
+            void SetDefaultCell (Cell cell)
             {
-                SetNeighbourCellPathValues( endNode, currentNode, neighbour, tentativeGCost );
-                IncludeNeighbourOnOpenList( neighbour );
+                cell.gCost = int.MaxValue;
+                cell.CalculateF();
+                cell.cameFromNode = null;
             }
         }
-    }
-
-
-    private void SetNeighbourCellPathValues (Cell endNode, Cell currentNode, Cell neighbour, int tentativeGCost)
-    {
-        neighbour.cameFromNode = currentNode;
-        neighbour.gCost = tentativeGCost;
-        neighbour.hCost = Utils.ManhatamDistance( neighbour, endNode );
-        //neighbour.hCost = CalculateManhatamDistance( neighbour, endNode );
-        neighbour.CalculateF();
-    }
-    private void IncludeNeighbourOnOpenList (Cell neighbour)
-    {
-        if (!openList.Contains( neighbour ))
+        Cell GetLowestFCostNode (List<Cell> pathNodeList)
         {
-            openList.Add( neighbour );
+            Cell lowestFCostNode = pathNodeList[0];
+            foreach (var node in pathNodeList)
+            {
+                if (node.FCost < lowestFCostNode.FCost)
+                {
+                    lowestFCostNode = node;
+                }
+            }
+            return lowestFCostNode;
+        }
+        void ScanNeighboursForBetterPath (Cell endNode, Cell currentNode)
+        {
+            foreach (Cell neighbour in GetNeighboursList( currentNode ))
+            {
+                if (closedList.Contains( neighbour ))
+                {
+                    continue;
+                }
+                int tentativeGCost = currentNode.gCost + Utils.ManhatamDistance( currentNode, neighbour );
+
+                if (tentativeGCost < neighbour.gCost)
+                {
+                    SetNeighbourCellPathValues( endNode, currentNode, neighbour, tentativeGCost );
+                    IncludeNeighbourOnOpenList( neighbour );
+                }
+            }
+            void SetNeighbourCellPathValues (Cell endNode, Cell currentNode, Cell neighbour, int tentativeGCost)
+            {
+                neighbour.cameFromNode = currentNode;
+                neighbour.gCost = tentativeGCost;
+                neighbour.hCost = Utils.ManhatamDistance( neighbour, endNode );
+                //neighbour.hCost = CalculateManhatamDistance( neighbour, endNode );
+                neighbour.CalculateF();
+            }
+            void IncludeNeighbourOnOpenList (Cell neighbour)
+            {
+                if (!openList.Contains( neighbour ))
+                {
+                    openList.Add( neighbour );
+                }
+            }
+        }
+        List<Cell> CalculatePath (Cell endNode)
+        {
+            List<Cell> path = new List<Cell>();
+            path.Add( endNode );
+            Cell queue = endNode;
+            while (queue.cameFromNode != null)
+            {
+                path.Add( queue.cameFromNode );
+                queue = queue.cameFromNode;
+            }
+            path.Reverse();
+            return path;
         }
     }
+
     private List<Cell> GetNeighboursList (Cell currentNode)
     {
         float centerX = currentNode.worldPosition.x;
@@ -229,15 +220,6 @@ public class PathFinding
             }
         }
     }
-    ///  ////////////////////////////////////////////////////////////////////////
-    //private int CalculateManhatamDistance (Cell a, Cell b)
-    //{
-    //    int xDistance = Mathf.Abs( a.gridPosition.x - b.gridPosition.x );
-    //    int yDistance = Mathf.Abs( a.gridPosition.y - b.gridPosition.y );
-    //    int remaining = Mathf.Abs( xDistance - yDistance );
-    //    return MOVE_DIAGONAL_COST * Mathf.Min( xDistance, yDistance ) + MOVE_STRAIGHT_COST * remaining;
-    //}
-
     public void SnapToGrid (GameObject objectToSnap)
     {
         //get the closest grid position to the objectToSnap world position
@@ -246,49 +228,5 @@ public class PathFinding
         Vector3 cellCenter = new Vector3( grid.cellSize, grid.cellSize ) * 0.5f;
         position.position = grid.GetGridPosition( position.position ) + cellCenter + grid.OriginPosition;
 
-    }
-    public void SetCellWalkable (int x, int y)
-    {
-        Cell cell = grid.GetGridObject( x, y );
-        //Debug.DrawLine( grid.GetWorldPosition( x, y ), grid.GetWorldPosition( x + 1, y + 1 ), Color.blue, 10f );
-        cell.isWall = false;
-    }
-    public void SetCellWalkable (Vector3 position)
-    {
-        Vector3Int gridPosition = grid.GetGridPosition( position );
-
-        SetCellWalkable( gridPosition.x, gridPosition.y );
-    }
-    public void SetCellUnwalkable (int x, int y)
-    {
-        Cell cell = grid.GetGridObject( x, y );
-        //Debug.DrawLine( grid.GetWorldPosition( x, y ), grid.GetWorldPosition( x + 1, y + 1 ), Color.red, 10f );
-        cell.isWall = true;
-    }
-    public void SetCellUnwalkable (Vector3 cellPosition)
-    {
-        Vector3Int gridPosition = grid.GetGridPosition( cellPosition );
-        SetCellUnwalkable( gridPosition.x, gridPosition.y );
-    }
-    public static void ShowPathLines (Grid<Cell> grid, List<Cell> path, Color color, float duration)
-    {
-        if (path != null)
-        {
-            for (int i = 0; i < path.Count - 1; i++)
-            {
-                Vector3Int currentCellPosition = path[i].gridPosition;
-                int pathX = currentCellPosition.x;
-                int pathY = currentCellPosition.y;
-                Vector3 position = grid.GetWorldPosition( pathX, pathY );
-
-                Vector3Int nextCellPosition = path[i + 1].gridPosition;
-                int nextPathX = nextCellPosition.x;
-                int nextPathY = nextCellPosition.y;
-                Vector3 positionNext = grid.GetWorldPosition( nextPathX, nextPathY );
-
-                Vector3 centerCell = Vector3.one * 0.5f * grid.cellSize;
-                Debug.DrawLine( position + centerCell, positionNext + centerCell, color, duration );
-            }
-        }
     }
 }

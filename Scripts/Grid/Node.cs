@@ -1,8 +1,9 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Node
+public class Node : IComparer<Node>
 {
     public int level;
     public Vector3 WorldPosition { get; private set; }
@@ -14,7 +15,7 @@ public class Node
     public float hCost = 0;
     public float FCost { get; private set; }
     public Node Parent { get; private set; }
-    public List<KeyValuePair<int, Node>> neighbours = new List<KeyValuePair<int, Node>>();
+    public List<Node> neighbours = new List<Node>();
     public Node ( )
     {
 
@@ -34,23 +35,25 @@ public class Node
     public void SetPair (Node pair)
     {
         this.Pair = pair;
-        KeyValuePair<int, Node> p = new KeyValuePair<int, Node>( 10, Pair );
-        neighbours.Add( p );
+        neighbours.Add( pair );
     }
-    public void AddNeighbour (Node node, int Distance)
+    public void AddNeighbour (Node node)
     {
-        if (node.WorldPosition != this.WorldPosition)
+        if (this != node)
         {
-            if (node.level == this.level)
+            if (node.WorldPosition != this.WorldPosition)
             {
-                if (node.cluster == this.cluster)
+                foreach (var n in this.neighbours)
                 {
-                    KeyValuePair<int, Node> n = new KeyValuePair<int, Node>( Distance, node );
-                    neighbours.Add( n );
+                    if (n.WorldPosition == node.WorldPosition)
+                    {
+                        return;
+                    }
                 }
+                this.neighbours.Add( node );
+
             }
         }
-
     }
 
     public void SetPosition (Vector3 WorldPosition)
@@ -61,4 +64,12 @@ public class Node
     {
         this.GridPosition = GridPosition;
     }
+
+    public int Compare (Node a, Node b)
+    {
+        float distance1 = Utils.ManhatamDistance( this.GridPosition, a.GridPosition );
+        float distance2 = Utils.ManhatamDistance( this.GridPosition, b.GridPosition );
+        return distance1.CompareTo( distance2 );
+    }
 }
+
