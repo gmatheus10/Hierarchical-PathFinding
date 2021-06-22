@@ -31,10 +31,8 @@ public class Hierarchical_Pathfinding : MonoBehaviour
         endNode = pos.endNode;
 
         List<Node> abstractPath = HierarchicalSearch( startNode, endNode, MaxLevel );
-        HPA_Utils.ShowPathLines( abstractPath, Color.red );
         List<Cluster> clusterPath = RefinePath( abstractPath, MaxLevel );
 
-        //  RefinePath( abstractPath, level );
     }
 
 
@@ -65,7 +63,10 @@ public class Hierarchical_Pathfinding : MonoBehaviour
             void ConnectToBorder (Node node, Cluster cluster)
             {
                 int level = cluster.level;
-
+                if (cluster.clusterNodes.Contains( node ))
+                {
+                    return;
+                }
                 foreach (Node n in cluster.clusterNodes)
                 {
                     if (n.level < level)
@@ -92,42 +93,51 @@ public class Hierarchical_Pathfinding : MonoBehaviour
 
         void Hierarchical (List<Node> path, int level)
         {
+            level--;
             if (level < 1)
             {
                 return;
             }
-            List<Node> lesserLevelPath = new List<Node>();
             var nodesGrouped = path.GroupBy( node => ( node.cluster ) );
-            foreach (var group in nodesGrouped)
+            List<Node> lesserPath = new List<Node>();
+            foreach (var node in nodesGrouped)
             {
-
+                List<Node> less = HierarchicalSearch( node.First(), node.Last(), level );
+                lesserPath.AddRange( less );
             }
-            //need to group level n clusters to find a level n-1 path on each of them
-
-
-            //save the path on the lesserLevelPath
+            DebugPath( lesserPath );
+            Hierarchical( lesserPath, level );
         }
 
         return null;
 
         void DebugPath (List<Node> path)
         {
-            foreach (Node n in path)
+            if (path[0].level == 1)
             {
-                Debug.Log( n.level );
-                if (n.level == 1)
+                // HPA_Utils.ShowPathLines( path, Color.blue );
+                foreach (Node n in path)
                 {
                     HPA_Utils.DrawCrossInPosition( n.WorldPosition, Color.blue );
                 }
-                if (n.level == 2)
+            }
+            if (path[0].level == 2)
+            {
+                HPA_Utils.ShowPathLines( path, Color.yellow );
+                foreach (Node n in path)
                 {
                     HPA_Utils.DrawCrossInPosition( n.WorldPosition, Color.yellow );
                 }
-                if (n.level == 3)
+            }
+            if (path[0].level == 3)
+            {
+                HPA_Utils.ShowPathLines( path, Color.green );
+                foreach (Node n in path)
                 {
                     HPA_Utils.DrawCrossInPosition( n.WorldPosition, Color.green );
                 }
             }
+
         }
     }
     //Helpers
@@ -135,6 +145,10 @@ public class Hierarchical_Pathfinding : MonoBehaviour
     {
         SortedList<float, Node> openList = new SortedList<float, Node>();
         List<Node> closedList = new List<Node>();
+        if (startNode.GridPosition == endNode.GridPosition)
+        {
+            return new List<Node>() { startNode };
+        }
         ScanGridAndSetDefault();
 
 

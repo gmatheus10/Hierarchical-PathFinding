@@ -40,11 +40,14 @@ public class Cluster
     {
         if (this.IsPositionInside( node.WorldPosition ))
         {
-            if (!clusterNodes.Contains( node ))
+            foreach (Node n in this.clusterNodes)
             {
-
-                clusterNodes.Add( node );
+                if (n.WorldPosition == node.WorldPosition)
+                {
+                    return;
+                }
             }
+            clusterNodes.Add( node );
         }
 
     }

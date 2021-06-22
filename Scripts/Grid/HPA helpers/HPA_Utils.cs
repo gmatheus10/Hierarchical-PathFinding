@@ -10,8 +10,8 @@ public static class HPA_Utils
         float crossLength = 0.2f;
         Vector3 crossX = new Vector3( crossLength, 0, 0 );
         Vector3 crossY = new Vector3( 0, crossLength, 0 );
-        Debug.DrawLine( position - crossX, position + crossX, color, 100000f );
-        Debug.DrawLine( position - crossY, position + crossY, color, 100000f );
+        Debug.DrawLine( position - crossX, position + crossX, color, 10000f );
+        Debug.DrawLine( position - crossY, position + crossY, color, 10000f );
     }
     public static void DrawCrossInCell (Cell c, Color color)
     {

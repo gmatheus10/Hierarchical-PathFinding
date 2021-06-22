@@ -51,7 +51,6 @@ public class Node : IComparer<Node>
                     }
                 }
                 this.neighbours.Add( node );
-
             }
         }
     }
