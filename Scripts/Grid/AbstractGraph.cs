@@ -29,11 +29,10 @@ public class AbstractGraph : MonoBehaviour
     {
         grid = createGrid.grid;
         PreProcessing( Level );
-        // DebugOnClick.PassMousePosition += DebugCluster;
+        DebugOnClick.PassMousePosition += DebugCluster;
     }
     void DebugCluster (Vector3 position)
     {
-        int LEVEL = 2;
 
         foreach (Cluster[,] level in allClustersAllLevels)
         {
@@ -45,29 +44,31 @@ public class AbstractGraph : MonoBehaviour
 
                     if (cluster.IsPositionInside( position ))
                     {
-                        foreach (Node n in cluster.clusterNodes)
-                        {
-                            if (n.level == 2)
-                            {
-                                HPA_Utils.DrawCrossInPosition( n.WorldPosition, Color.yellow );
-                                foreach (Node neighbour in n.neighbours)
-                                {
-                                    HPA_Utils.DrawCrossInPosition( neighbour.WorldPosition, Color.cyan );
-                                }
-                            }
-                            //if (n.level == 3)
-                            //{
-                            //    HPA_Utils.DrawCrossInPosition( n.WorldPosition, Color.green );
-                            //}
-                            //if (n.level == 1)
-                            //{
-                            //    HPA_Utils.DrawCrossInPosition( n.WorldPosition, Color.blue );
-
-                            //}
-                        }
-
+                        // ShowClusterNodes( cluster, 2 );
                     }
 
+                }
+            }
+        }
+        void ShowClusterNodes (Cluster cluster, int level)
+        {
+            if (cluster.level == level)
+                foreach (Node n in cluster.clusterNodes)
+                {
+                    if (n.level == level)
+                    {
+                        HPA_Utils.DrawCrossInPosition( n.WorldPosition, Color.red );
+                    }
+                }
+        }
+        void iterate (Node node, int level)
+        {
+            if (node.level == level)
+            {
+                //HPA_Utils.DrawCrossInPosition( n.WorldPosition, Color.blue );
+                foreach (Node neig in node.neighbours)
+                {
+                    HPA_Utils.DrawCrossInPosition( neig.WorldPosition, Color.blue );
                 }
             }
         }
@@ -512,7 +513,7 @@ public class AbstractGraph : MonoBehaviour
                         foreach (Node node in entrance.Value.entranceNodes)
                         {
                             AddLeveledNode( cluster, node );
-                            // AddLeveledNode( nextCluster, node.Pair );
+                            AddLeveledNode( nextCluster, node.Pair );
                         }
                     }
                     List<Node> nodes = cluster.clusterNodes;

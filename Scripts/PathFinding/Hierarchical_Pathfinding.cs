@@ -40,12 +40,10 @@ public class Hierarchical_Pathfinding : MonoBehaviour
     {
         InsertNode( start, level );
         InsertNode( end, level );
-        if (start.neighbours.Contains( end ))
-        {
-            start.neighbours.Remove( end );
-        }
-        List<Node> abstractPath = SearchForPath( start, end );
 
+        List<Node> abstractPath = SearchForPath( start, end, level );
+        RemoveNode( start, level );
+        RemoveNode( end, level );
         return abstractPath;
 
         void InsertNode (Node node, int maxLevel)
@@ -58,16 +56,17 @@ public class Hierarchical_Pathfinding : MonoBehaviour
                 ConnectToBorder( node, c );
             }
             node.level = maxLevel;
-            node.neighbours.Sort( new Node() );
+            node.neighbours.Sort( node );
 
             void ConnectToBorder (Node node, Cluster cluster)
             {
                 int level = cluster.level;
-                if (cluster.clusterNodes.Contains( node ))
+                List<Node> clusterNodes = cluster.clusterNodes;
+                if (clusterNodes.Contains( node ))
                 {
                     return;
                 }
-                foreach (Node n in cluster.clusterNodes)
+                foreach (Node n in clusterNodes)
                 {
                     if (n.level < level)
                     {
@@ -82,13 +81,21 @@ public class Hierarchical_Pathfinding : MonoBehaviour
                 //disconnect node from the cluster later
             }
         }
+        void RemoveNode (Node node, int maxLevel)
+        {
+            for (int i = 1; i <= maxLevel; i++)
+            {
+                Cluster c = GetCluster( node.WorldPosition, i );
+                c.RemoveNodeFromCluster( node );
 
+            }
+
+        }
     }
 
     List<Cluster> RefinePath (List<Node> path, int level)
     {
-        DebugPath( path );
-
+        DebugPath( path, level );
         Hierarchical( path, level );
 
         void Hierarchical (List<Node> path, int level)
@@ -98,108 +105,114 @@ public class Hierarchical_Pathfinding : MonoBehaviour
             {
                 return;
             }
-            var nodesGrouped = path.GroupBy( node => ( node.cluster ) );
+            //get node grid position
+            //make new node on this grid position (ephemeral node)
+            //do hierarchical search with the start node and the end node 
+
             List<Node> lesserPath = new List<Node>();
-            foreach (var node in nodesGrouped)
+            for (int i = 1; i < path.Count; i++)
             {
-                List<Node> less = HierarchicalSearch( node.First(), node.Last(), level );
+                Cluster iCluster = GetCluster( path[i].WorldPosition, level + 1 );
+                Cluster iMinusCluster = GetCluster( path[i - 1].WorldPosition, level + 1 );
+                if (iCluster != iMinusCluster)
+                {
+                    continue;
+                }
+
+
+                Node ephemeralStart = CopyNode( path[i - 1] ); //////////////////////////////////////////////////////////////////// EPHEMERAL NODE APPROACH METHODS
+                Node ephemeralEnd = CopyNode( path[i] ); //////////////////////////////////////////////////////////////////// EPHEMERAL NODE APPROACH METHODS
+
+                List<Node> less = HierarchicalSearch( ephemeralStart, ephemeralEnd, level );
                 lesserPath.AddRange( less );
+
             }
-            DebugPath( lesserPath );
+            DebugPath( lesserPath, level );
+            Debug.Log( $"Level: {level} - Path Count: {lesserPath.Count}" );
+            Debug.Log( "////////////////////////////////////////////////////////////" );
             Hierarchical( lesserPath, level );
         }
 
         return null;
-
-        void DebugPath (List<Node> path)
+        void DebugPath (List<Node> path, int level)
         {
-            if (path[0].level == 1)
+            Color color = new Color();
+            if (level == 1)
             {
-                // HPA_Utils.ShowPathLines( path, Color.blue );
-                foreach (Node n in path)
-                {
-                    HPA_Utils.DrawCrossInPosition( n.WorldPosition, Color.blue );
-                }
+                color = Color.blue;
             }
-            if (path[0].level == 2)
+            if (level == 2)
             {
-                HPA_Utils.ShowPathLines( path, Color.yellow );
-                foreach (Node n in path)
-                {
-                    HPA_Utils.DrawCrossInPosition( n.WorldPosition, Color.yellow );
-                }
+                color = Color.yellow;
             }
-            if (path[0].level == 3)
+            if (level == 3)
             {
-                HPA_Utils.ShowPathLines( path, Color.green );
-                foreach (Node n in path)
-                {
-                    HPA_Utils.DrawCrossInPosition( n.WorldPosition, Color.green );
-                }
+                color = Color.green;
             }
-
+            HPA_Utils.ShowPathLines( path, color );
         }
+        Node CopyNode (Node node)//////////////////////////////////////////////////////////////////// EPHEMERAL NODE APPROACH METHODS
+        {
+            Node copy = new Node();
+            copy.SetPosition( node.WorldPosition );
+            copy.SetGridPosition( node.GridPosition );
+            return copy;
+        }
+
     }
     //Helpers
-    private List<Node> SearchForPath (Node startNode, Node endNode)
+    private List<Node> SearchForPath (Node startNode, Node endNode, int Level)
     {
         SortedList<float, Node> openList = new SortedList<float, Node>();
         List<Node> closedList = new List<Node>();
-        if (startNode.GridPosition == endNode.GridPosition)
-        {
-            return new List<Node>() { startNode };
-        }
         ScanGridAndSetDefault();
-
 
         startNode.gCost = 0;
         startNode.hCost = Utils.ManhatamDistance( startNode.GridPosition, endNode.GridPosition );
-
         startNode.SetFCost();
 
         openList.Add( startNode.FCost, startNode );
+
         while (openList.Count > 0)
         {
             Node currentNode = openList.Values[0];
 
             openList.RemoveAt( 0 );
             closedList.Add( currentNode );
-            foreach (var pair in currentNode.neighbours)
+
+            foreach (Node neighbour in currentNode.neighbours)
             {
-                Node neighbour = pair;
                 if (neighbour.GridPosition == endNode.GridPosition)
                 {
                     neighbour.SetParent( currentNode );
                     return CalculatePath( neighbour );
                 }
 
-                float newG = currentNode.gCost + Utils.ManhatamDistance( neighbour.GridPosition, currentNode.GridPosition );
 
+                float newG = currentNode.gCost + Utils.ManhatamDistance( neighbour.GridPosition, currentNode.GridPosition );
                 if (newG < neighbour.gCost)
                 {
                     ConfigureNeighbour( endNode, currentNode, neighbour, newG );
 
-                    if (!openList.Values.Contains( neighbour ))
+                    if (!openList.ContainsKey( neighbour.FCost ))
                     {
-                        if (!openList.ContainsKey( neighbour.FCost ))
+                        openList.Add( neighbour.FCost, neighbour );
+                    }
+                    else
+                    {
+                        Node insider = openList[neighbour.FCost];
+                        if (insider.gCost < neighbour.gCost)
                         {
+                            openList.Remove( neighbour.FCost );
                             openList.Add( neighbour.FCost, neighbour );
                         }
-                        else
-                        {
-                            Node insider = openList[neighbour.FCost];
-                            if (insider.gCost < neighbour.gCost)
-                            {
-                                openList.Remove( neighbour.FCost );
-                                openList.Add( neighbour.FCost, neighbour );
-                            }
-                        }
-
                     }
                 }
             }
         }
-        Debug.Log( $"Didn't find it - start Node: {startNode.WorldPosition}" );
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        Debug.Log( $"Didn't find it - start Node: {startNode.GridPosition} to end Node: {endNode.GridPosition}" );
 
         return null;
 
@@ -216,7 +229,7 @@ public class Hierarchical_Pathfinding : MonoBehaviour
                     {
                         Cluster current = setOfClusters[i, j];
 
-                        for (int m = 0; m < current.clusterNodes.Count - 1; m++)
+                        for (int m = 0; m <= current.clusterNodes.Count - 1; m++)
                         {
                             Node node = current.clusterNodes[m];
                             node.gCost = Mathf.Infinity;
@@ -249,8 +262,8 @@ public class Hierarchical_Pathfinding : MonoBehaviour
             path.Reverse();
 
 
-            path[0].cluster.clusterNodes.Remove( path[0] );
-            path[path.Count - 1].cluster.clusterNodes.Remove( path[path.Count - 1] );
+            //path[0].cluster.clusterNodes.Remove( path[0] );
+            //path[path.Count - 1].cluster.clusterNodes.Remove( path[path.Count - 1] );
 
             return path;
         }

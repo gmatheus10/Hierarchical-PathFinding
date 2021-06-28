@@ -5,14 +5,15 @@ using UnityEngine;
 
 public static class HPA_Utils
 {
-    public static void DrawCrossInPosition (Vector3 position, Color color)
+    public static void DrawCrossInPosition (Vector3 position, Color color, float Duration = 10000f)
     {
         float crossLength = 0.2f;
         Vector3 crossX = new Vector3( crossLength, 0, 0 );
         Vector3 crossY = new Vector3( 0, crossLength, 0 );
-        Debug.DrawLine( position - crossX, position + crossX, color, 10000f );
-        Debug.DrawLine( position - crossY, position + crossY, color, 10000f );
+        Debug.DrawLine( position - crossX, position + crossX, color, Duration );
+        Debug.DrawLine( position - crossY, position + crossY, color, Duration );
     }
+
     public static void DrawCrossInCell (Cell c, Color color)
     {
         DrawCrossInPosition( c.worldPosition, color );
@@ -112,6 +113,7 @@ public static class HPA_Utils
             foreach (Node node in path)
             {
                 newPath.Add( node.WorldPosition );
+                DrawCrossInPosition( node.WorldPosition, color );
             }
             ShowPathLines( newPath, color );
         }

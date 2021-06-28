@@ -6,7 +6,7 @@ The paper can be found on http://webdocs.cs.ualberta.ca/~mmueller/ps/hpastar.pdf
 
 This solution have modified methods and do not use Edge calculation/storage.
 The cluster have fixed ammount of subCluster (4) to make it easy
-The path obtained from the abstract graph is not close to the path obtained from A* alone
+This is 100% working.
 
 How to use:
  - create an object and attach the CreateGrid.cs on it -> grid object 

@@ -20,13 +20,14 @@ public class Cluster
     public int level;
 
     public List<Cluster> lesserLevelClusters = new List<Cluster>();
-    public Grid<Cell> clusterGrid { get; private set; }
+    public Grid<Cell> ClusterGrid { get; private set; }
     public Cluster (Vector2Int size, Vector3 originPosition, int level = 1)
     {
         this.OriginPosition = originPosition;
         this.level = level;
         this.size = size;
     }
+
     public void SetGridPosition (Vector3Int gridPosition)
     {
         this.GridPosition = gridPosition;
@@ -51,6 +52,14 @@ public class Cluster
         }
 
     }
+    public void RemoveNodeFromCluster (Node node)
+    {
+        if (this.clusterNodes.Contains( node ))
+        {
+            clusterNodes.Remove( node );
+        }
+    }
+
     public bool IsPositionInside (Vector3 position)
     {
         Vector3 thisStart = this.OriginPosition;
@@ -113,7 +122,7 @@ public class Cluster
     }
     public void SetGrid (Grid<Cell> clusterGrid)
     {
-        this.clusterGrid = clusterGrid;
+        this.ClusterGrid = clusterGrid;
     }
 
     public void SetFCost ( )
