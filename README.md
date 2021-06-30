@@ -5,8 +5,13 @@ My attempt on the hierarchical pathfinding based on the Near Optimal Hierarchica
 The paper can be found on http://webdocs.cs.ualberta.ca/~mmueller/ps/hpastar.pdf
 
 This solution have modified methods and do not use Edge calculation/storage.
-The cluster have fixed ammount of subCluster (4) to make it easy
+The cluster have fixed ammount of subCluster (4) to make it easy.
 This is 100% working.
+
+On the example scene:
+- Green = level 3 path.
+- Yellow = level 2 path.
+- Blue = level 1 path.
 
 How to use:
  - create an object and attach the CreateGrid.cs on it -> grid object 

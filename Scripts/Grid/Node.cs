@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Node : IComparer<Node>
+public class Node : IComparer<Node>, IEquatable<Node>
 {
     public int level;
     public float gCost = 0;
@@ -18,7 +18,6 @@ public class Node : IComparer<Node>
 
     public Node ( )
     {
-
     }
     public Node (Cluster cluster)
     {
@@ -50,14 +49,10 @@ public class Node : IComparer<Node>
     {
         if (this.WorldPosition != node.WorldPosition)
         {
-            //foreach (var n in this.neighbours)
-            //{
-            //    if (n.WorldPosition == node.WorldPosition)
-            //    {
-            //        return;
-            //    }
-            //}
-            this.neighbours.Add( node );
+            if (!this.neighbours.Contains( node ))
+            {
+                this.neighbours.Add( node );
+            }
         }
     }
     public int Compare (Node a, Node b)
@@ -65,6 +60,17 @@ public class Node : IComparer<Node>
         float distance1 = Utils.ManhatamDistance( this.GridPosition, a.GridPosition );
         float distance2 = Utils.ManhatamDistance( this.GridPosition, b.GridPosition );
         return distance1.CompareTo( distance2 );
+    }
+    public bool Equals (Node other)
+    {
+        if (this.WorldPosition == other.WorldPosition && this.GridPosition == other.GridPosition && this.level == other.level)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
 }
 

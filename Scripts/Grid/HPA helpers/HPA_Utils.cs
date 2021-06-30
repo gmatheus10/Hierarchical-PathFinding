@@ -119,4 +119,16 @@ public static class HPA_Utils
         }
 
     }
+
+    public static bool IsNodeInsideList (List<Node> nodes, Node node)
+    {
+        foreach (Node n in nodes)
+        {
+            if (n.GridPosition == node.GridPosition)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 }

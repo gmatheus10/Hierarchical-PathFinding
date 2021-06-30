@@ -44,7 +44,19 @@ public class AbstractGraph : MonoBehaviour
 
                     if (cluster.IsPositionInside( position ))
                     {
-                        // ShowClusterNodes( cluster, 2 );
+                        foreach (Node n in cluster.clusterNodes)
+                        {
+                            if (n.WorldPosition == position)
+                            {
+                                if (n.neighbours.Count > 0)
+                                {
+                                    foreach (Node neig in n.neighbours)
+                                    {
+                                        // HPA_Utils.DrawCrossInPosition( neig.WorldPosition, Color.red );
+                                    }
+                                }
+                            }
+                        }
                     }
 
                 }

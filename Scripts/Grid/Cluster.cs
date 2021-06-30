@@ -5,20 +5,13 @@ using UnityEngine;
 
 public class Cluster
 {
+    public int level;
     public Vector2Int size;
     public Vector3 OriginPosition { get; private set; }
     public Vector3Int GridPosition { get; private set; }
-
-    public float gCost;
-    public float hCost;
-    public float FCost { get; private set; }
-    public Cluster cameFrom;
-
     public Dictionary<string, List<Cell>> borders = new Dictionary<string, List<Cell>>();
     public Dictionary<string, Entrance> entrances = new Dictionary<string, Entrance>();
     public List<Node> clusterNodes = new List<Node>();
-    public int level;
-
     public List<Cluster> lesserLevelClusters = new List<Cluster>();
     public Grid<Cell> ClusterGrid { get; private set; }
     public Cluster (Vector2Int size, Vector3 originPosition, int level = 1)
@@ -41,20 +34,13 @@ public class Cluster
     {
         if (this.IsPositionInside( node.WorldPosition ))
         {
-            foreach (Node n in this.clusterNodes)
-            {
-                if (n.WorldPosition == node.WorldPosition)
-                {
-                    return;
-                }
-            }
             clusterNodes.Add( node );
         }
 
     }
     public void RemoveNodeFromCluster (Node node)
     {
-        if (this.clusterNodes.Contains( node ))
+        if (clusterNodes.Contains( node ))
         {
             clusterNodes.Remove( node );
         }
@@ -123,11 +109,6 @@ public class Cluster
     public void SetGrid (Grid<Cell> clusterGrid)
     {
         this.ClusterGrid = clusterGrid;
-    }
-
-    public void SetFCost ( )
-    {
-        this.FCost = this.gCost + this.hCost;
     }
 
 

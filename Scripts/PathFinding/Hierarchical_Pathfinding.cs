@@ -31,7 +31,7 @@ public class Hierarchical_Pathfinding : MonoBehaviour
         endNode = pos.endNode;
 
         List<Node> abstractPath = HierarchicalSearch( startNode, endNode, MaxLevel );
-        List<Cluster> clusterPath = RefinePath( abstractPath, MaxLevel );
+        List<Node> clusterPath = RefinePath( abstractPath, MaxLevel );
 
     }
 
@@ -62,10 +62,7 @@ public class Hierarchical_Pathfinding : MonoBehaviour
             {
                 int level = cluster.level;
                 List<Node> clusterNodes = cluster.clusterNodes;
-                if (clusterNodes.Contains( node ))
-                {
-                    return;
-                }
+
                 foreach (Node n in clusterNodes)
                 {
                     if (n.level < level)
@@ -74,11 +71,8 @@ public class Hierarchical_Pathfinding : MonoBehaviour
                     }
                     node.AddNeighbour( n );
                     n.AddNeighbour( node );
-
                 }
                 cluster.AddNodeToCluster( node );
-
-                //disconnect node from the cluster later
             }
         }
         void RemoveNode (Node node, int maxLevel)
@@ -87,17 +81,24 @@ public class Hierarchical_Pathfinding : MonoBehaviour
             {
                 Cluster c = GetCluster( node.WorldPosition, i );
                 c.RemoveNodeFromCluster( node );
-
+                Disconnect( node );
             }
-
+            void Disconnect (Node node)
+            {
+                foreach (Node neig in node.neighbours)
+                {
+                    neig.neighbours.Remove( node );
+                }
+            }
         }
     }
 
-    List<Cluster> RefinePath (List<Node> path, int level)
+    List<Node> RefinePath (List<Node> path, int level)
     {
         DebugPath( path, level );
         Hierarchical( path, level );
-
+        return null;
+        //To do:  return a list of the lowest level path
         void Hierarchical (List<Node> path, int level)
         {
             level--;
@@ -105,10 +106,6 @@ public class Hierarchical_Pathfinding : MonoBehaviour
             {
                 return;
             }
-            //get node grid position
-            //make new node on this grid position (ephemeral node)
-            //do hierarchical search with the start node and the end node 
-
             List<Node> lesserPath = new List<Node>();
             for (int i = 1; i < path.Count; i++)
             {
@@ -120,20 +117,19 @@ public class Hierarchical_Pathfinding : MonoBehaviour
                 }
 
 
-                Node ephemeralStart = CopyNode( path[i - 1] ); //////////////////////////////////////////////////////////////////// EPHEMERAL NODE APPROACH METHODS
-                Node ephemeralEnd = CopyNode( path[i] ); //////////////////////////////////////////////////////////////////// EPHEMERAL NODE APPROACH METHODS
+                Node ephemeralStart = CopyNode( path[i - 1] );
+                Node ephemeralEnd = CopyNode( path[i] );
 
                 List<Node> less = HierarchicalSearch( ephemeralStart, ephemeralEnd, level );
                 lesserPath.AddRange( less );
 
+                ephemeralStart = null;
+                ephemeralEnd = null;
             }
             DebugPath( lesserPath, level );
-            Debug.Log( $"Level: {level} - Path Count: {lesserPath.Count}" );
-            Debug.Log( "////////////////////////////////////////////////////////////" );
             Hierarchical( lesserPath, level );
-        }
 
-        return null;
+        }
         void DebugPath (List<Node> path, int level)
         {
             Color color = new Color();
@@ -151,7 +147,7 @@ public class Hierarchical_Pathfinding : MonoBehaviour
             }
             HPA_Utils.ShowPathLines( path, color );
         }
-        Node CopyNode (Node node)//////////////////////////////////////////////////////////////////// EPHEMERAL NODE APPROACH METHODS
+        Node CopyNode (Node node)
         {
             Node copy = new Node();
             copy.SetPosition( node.WorldPosition );
@@ -182,7 +178,15 @@ public class Hierarchical_Pathfinding : MonoBehaviour
 
             foreach (Node neighbour in currentNode.neighbours)
             {
-                if (neighbour.GridPosition == endNode.GridPosition)
+                if (neighbour.level < Level)
+                {
+                    continue;
+                }
+                if (closedList.Contains( neighbour ))
+                {
+                    continue;
+                }
+                if (neighbour == endNode)
                 {
                     neighbour.SetParent( currentNode );
                     return CalculatePath( neighbour );
@@ -215,8 +219,6 @@ public class Hierarchical_Pathfinding : MonoBehaviour
         Debug.Log( $"Didn't find it - start Node: {startNode.GridPosition} to end Node: {endNode.GridPosition}" );
 
         return null;
-
-
         void ScanGridAndSetDefault ( )
         {
             List<Cluster[,]> allClusters = abstractGraph.allClustersAllLevels;
@@ -260,11 +262,6 @@ public class Hierarchical_Pathfinding : MonoBehaviour
                 queue = queue.Parent;
             }
             path.Reverse();
-
-
-            //path[0].cluster.clusterNodes.Remove( path[0] );
-            //path[path.Count - 1].cluster.clusterNodes.Remove( path[path.Count - 1] );
-
             return path;
         }
     }
