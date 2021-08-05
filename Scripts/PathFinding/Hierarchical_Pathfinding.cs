@@ -186,7 +186,7 @@ public class Hierarchical_Pathfinding : MonoBehaviour
                 {
                     continue;
                 }
-                if (neighbour == endNode)
+                if (neighbour.Equals(endNode))
                 {
                     neighbour.SetParent( currentNode );
                     return CalculatePath( neighbour );
